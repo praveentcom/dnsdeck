@@ -13,14 +13,14 @@ struct DNSDeckApp: App {
                 .onAppear {
                     Task { await model.refreshZones() }
                 }
-                .frame(minWidth: 800, minHeight: 800)
+                .frame(minWidth: Constants.UI.minimumWindowWidth, minHeight: Constants.UI.minimumWindowHeight)
         }
         .commands { SidebarCommands() }
 
         Settings {
             PreferencesView()
                 .environmentObject(model)
-                .frame(minWidth: 640, maxWidth: 640, minHeight: 480)
+                .frame(minWidth: Constants.UI.preferencesWindowWidth, maxWidth: Constants.UI.preferencesWindowWidth, minHeight: Constants.UI.preferencesWindowHeight)
         }
     }
 }

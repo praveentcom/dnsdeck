@@ -41,13 +41,13 @@ struct RecordsView: View {
             TableColumn("Name") { (record: ProviderRecord) in
                 Text(record.name).textSelection(.enabled)
             }
-            .width(min: 160)
+            .width(min: Constants.UI.tableColumnMinWidth)
             
             TableColumn("Content") { (record: ProviderRecord) in
                 Text(recordContentText(for: record))
                     .textSelection(.enabled)
             }
-            .width(min: 240)
+            .width(min: Constants.UI.contentColumnMinWidth)
             
             TableColumn("TTL") { (record: ProviderRecord) in
                 Text(ttlText(record.ttl))

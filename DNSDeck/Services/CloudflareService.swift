@@ -18,8 +18,9 @@ enum CFAPIError: Error, LocalizedError {
 }
 
 final class CloudflareService {
-    private let base = URL(string: "https://api.cloudflare.com/client/v4")!
+    private let base = URL(string: Constants.API.cloudflareBase)!
     private let tokenProvider: () -> String?
+    private let urlSession = NetworkConfiguration.urlSession
 
     init(tokenProvider: @escaping () -> String?) {
         self.tokenProvider = tokenProvider
@@ -32,7 +33,7 @@ final class CloudflareService {
         var page = 1
         repeat {
             var comps = URLComponents(url: base.appendingPathComponent("zones"), resolvingAgainstBaseURL: false)!
-            var q: [URLQueryItem] = [URLQueryItem(name: "per_page", value: "50"),
+            var q: [URLQueryItem] = [URLQueryItem(name: "per_page", value: "\(Constants.Pagination.cloudflarePageSize)"),
                                      URLQueryItem(name: "page", value: "\(page)")]
             if let name = nameFilter, !name.isEmpty {
                 q.append(URLQueryItem(name: "name", value: name))
@@ -53,7 +54,7 @@ final class CloudflareService {
         var page = 1
         repeat {
             var comps = URLComponents(url: base.appendingPathComponent("zones/\(zoneId)/dns_records"), resolvingAgainstBaseURL: false)!
-            comps.queryItems = [URLQueryItem(name: "per_page", value: "100"),
+            comps.queryItems = [URLQueryItem(name: "per_page", value: "\(Constants.Pagination.cloudflareMaxPageSize)"),
                                 URLQueryItem(name: "page", value: "\(page)")]
             let env: CFEnvelope<[CFDNSRecord]> = try await request(url: comps.url!, method: "GET")
             if let result = env.result { all += result }
@@ -97,7 +98,7 @@ final class CloudflareService {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
-        let (data, resp) = try await URLSession.shared.data(for: req)
+        let (data, resp) = try await urlSession.data(for: req)
         guard let http = resp as? HTTPURLResponse else { throw CFAPIError.http(-1) }
         guard (200..<300).contains(http.statusCode) else {
             // Cloudflare still wraps errors in JSON; try decode for better message.

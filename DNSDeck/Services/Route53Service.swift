@@ -39,9 +39,10 @@ enum R53APIError: Error, LocalizedError {
 }
 
 final class Route53Service {
-    private let baseURL = "https://route53.amazonaws.com"
-    private let region = "us-east-1" // Route 53 is global but uses us-east-1 for signing
-    private let service = "route53"
+    private let baseURL = Constants.API.route53Base
+    private let region = Constants.API.route53Region
+    private let service = Constants.API.route53Service
+    private let urlSession = NetworkConfiguration.urlSession
     
     private let credentialsProvider: () -> (accessKeyId: String?, secretAccessKey: String?)
     
@@ -57,7 +58,7 @@ final class Route53Service {
         
         repeat {
             var components = URLComponents(string: "\(baseURL)/2013-04-01/hostedzone")!
-            var queryItems: [URLQueryItem] = [URLQueryItem(name: "maxitems", value: "100")]
+            var queryItems: [URLQueryItem] = [URLQueryItem(name: "maxitems", value: "\(Constants.Pagination.route53PageSize)")]
             if let marker = marker {
                 queryItems.append(URLQueryItem(name: "marker", value: marker))
             }
@@ -90,7 +91,7 @@ final class Route53Service {
         
         repeat {
             var components = URLComponents(string: "\(baseURL)/2013-04-01/hostedzone/\(cleanZoneId(hostedZoneId))/rrset")!
-            var queryItems: [URLQueryItem] = [URLQueryItem(name: "maxitems", value: "300")]
+            var queryItems: [URLQueryItem] = [URLQueryItem(name: "maxitems", value: "\(Constants.Pagination.route53MaxPageSize)")]
             
             if let name = nextRecordName {
                 queryItems.append(URLQueryItem(name: "name", value: name))
@@ -231,7 +232,7 @@ final class Route53Service {
         // Sign the request using AWS Signature Version 4
         try signRequest(&request, accessKeyId: accessKeyId, secretAccessKey: secretAccessKey, bodyData: bodyData)
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await urlSession.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw R53APIError.invalidResponse

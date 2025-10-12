@@ -5,8 +5,8 @@ import Combine
 @MainActor
 final class AppModel: ObservableObject {
     // Replace with your own bundle id / service id
-    private let cloudflareTokenStore = KeychainTokenStore(service: "dev.dnsdeck.DNSDeck", account: "cloudflare.token")
-    private let route53CredentialsStore = KeychainRoute53CredentialsStore(service: "dev.dnsdeck.DNSDeck")
+    private let cloudflareTokenStore = KeychainTokenStore(service: Constants.keychainService, account: "cloudflare.token")
+    private let route53CredentialsStore = KeychainRoute53CredentialsStore(service: Constants.keychainService)
 
     lazy var cloudflareAPI = CloudflareService { [weak self] in
         (try? self?.cloudflareTokenStore.read()) ?? nil
