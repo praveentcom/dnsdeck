@@ -6,5 +6,9 @@
 	<true/>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)dev.dnsdeck.DNSDeck</string>
+	</array>
 </dict>
 </plist>

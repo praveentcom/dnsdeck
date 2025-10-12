@@ -63,25 +63,19 @@ struct PreferencesView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 24) {
           VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 12) {
-              Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 64, height: 64)
+            VStack(alignment: .leading, spacing: 2) {
+              Text("DNSDeck")
+                .font(.title2.weight(.semibold))
               
-              VStack(alignment: .leading, spacing: 4) {
-                Text("DNSDeck")
-                  .font(.title2.weight(.semibold))
-                
-                if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-                   let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-                  Text("Version \(version) (\(build))")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                }
+              if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                  let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+                Text("Version \(version) (\(build))")
+                  .font(.callout)
+                  .foregroundStyle(.secondary)
               }
             }
             
-            Text("A powerful DNS management tool for macOS that helps you manage your DNS records across multiple providers including Cloudflare and Amazon Route 53.")
+            Text("A powerful DNS management tool for macOS that helps you manage your DNS records across multiple providers including Cloudflare, Amazon Route 53 and more.")
               .font(.callout)
               .foregroundStyle(.secondary)
           }
@@ -91,19 +85,19 @@ struct PreferencesView: View {
               .font(.headline)
             
             VStack(alignment: .leading, spacing: 8) {
-              FeatureRow(icon: "cloud", title: "Multi-Provider Support", description: "Manage DNS records across Cloudflare and Amazon Route 53")
-              FeatureRow(icon: "lock.shield", title: "Secure Credential Storage", description: "Your API keys are safely stored in macOS Keychain")
-              FeatureRow(icon: "magnifyingglass", title: "Search & Filter", description: "Quickly find domains and DNS records")
+              FeatureRow(icon: "cloud", title: "Multi-Provider Support", description: "Manage DNS records across multiple cloud providers")
+              FeatureRow(icon: "lock.shield", title: "Secure Credential Storage", description: "Credentials are stored in your iCloud Keychain")
+              FeatureRow(icon: "magnifyingglass", title: "Search & Filter", description: "Quickly find domain zones and DNS records")
               FeatureRow(icon: "plus.circle", title: "Easy Record Management", description: "Add, edit, and delete DNS records with ease")
               FeatureRow(icon: "arrow.clockwise", title: "Real-time Updates", description: "Changes are reflected immediately in your DNS provider")
             }
           }
           
-          VStack(alignment: .leading, spacing: 12) {
+          VStack(alignment: .leading, spacing: 8) {
             Text("Copyright")
               .font(.headline)
             
-            Text("© 2024 DNSDeck. All rights reserved.")
+            Text("© 2025 Praveen Thirumurugan. All rights reserved.")
               .font(.callout)
               .foregroundStyle(.secondary)
           }
@@ -113,82 +107,6 @@ struct PreferencesView: View {
       }
       .tabItem {
         Label("About", systemImage: "info.circle")
-      }
-      
-      // Support Tab
-      ScrollView {
-        VStack(alignment: .leading, spacing: 24) {
-          VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 12) {
-              Image(systemName: "questionmark.circle.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(.blue)
-              
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Get Support")
-                  .font(.title2.weight(.semibold))
-                
-                Text("Need help? We're here to assist you.")
-                  .font(.callout)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-          
-          VStack(alignment: .leading, spacing: 16) {
-            SupportTile(
-              icon: "envelope.fill",
-              title: "Email Support",
-              description: "Get help with any questions or issues",
-              action: "Contact Support",
-              actionColor: .blue
-            ) {
-              let subject = "DNSDeck Support Request"
-              let body = """
-              
-              
-              ---
-              App Version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown")
-              Build: \(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown")
-              macOS Version: \(ProcessInfo.processInfo.operatingSystemVersionString)
-              """
-              
-              if let emailURL = URL(string: "mailto:support@dnsdeck.dev?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
-                NSWorkspace.shared.open(emailURL)
-              }
-            }
-            
-            SupportTile(
-              icon: "star.fill",
-              title: "Rate DNSDeck",
-              description: "Enjoying DNSDeck? Leave us a review on the App Store",
-              action: "Rate App",
-              actionColor: .orange
-            ) {
-              // This would open the App Store page when the app is published
-              if let appStoreURL = URL(string: "macappstore://apps.apple.com/app/dnsdeck/id123456789") {
-                NSWorkspace.shared.open(appStoreURL)
-              }
-            }
-            
-            SupportTile(
-              icon: "globe",
-              title: "Website",
-              description: "Visit our website for more information and updates",
-              action: "Visit Website",
-              actionColor: .green
-            ) {
-              if let websiteURL = URL(string: "https://dnsdeck.dev") {
-                NSWorkspace.shared.open(websiteURL)
-              }
-            }
-          }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-      }
-      .tabItem {
-        Label("Support", systemImage: "questionmark.circle")
       }
     }
     .tabViewStyle(.automatic)
@@ -305,11 +223,12 @@ struct FeatureRow: View {
   let description: String
   
   var body: some View {
-    HStack(alignment: .top, spacing: 12) {
+    HStack(alignment: .top, spacing: 8) {
       Image(systemName: icon)
         .font(.system(size: 16))
         .foregroundStyle(.blue)
         .frame(width: 20)
+        .padding(.top, 2)
       
       VStack(alignment: .leading, spacing: 2) {
         Text(title)
@@ -320,48 +239,5 @@ struct FeatureRow: View {
           .foregroundStyle(.secondary)
       }
     }
-  }
-}
-
-struct SupportTile: View {
-  let icon: String
-  let title: String
-  let description: String
-  let action: String
-  let actionColor: Color
-  let onAction: () -> Void
-  
-  var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .top, spacing: 12) {
-        Image(systemName: icon)
-          .font(.system(size: 20))
-          .foregroundStyle(actionColor)
-          .frame(width: 24)
-        
-        VStack(alignment: .leading, spacing: 4) {
-          Text(title)
-            .font(.callout.weight(.medium))
-          
-          Text(description)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        
-        Spacer()
-      }
-      
-      HStack {
-        Spacer()
-        Button(action) {
-          onAction()
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-      }
-    }
-    .padding(12)
-    .background(Color(NSColor.controlBackgroundColor))
-    .clipShape(RoundedRectangle(cornerRadius: 8))
   }
 }

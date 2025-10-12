@@ -50,9 +50,12 @@ struct ContentView: View {
             if let zone = model.selectedZone {
                 RecordsView(zone: zone)
             } else {
-                VStack(spacing: 12) {
-                    Text("Select a domain")
+                VStack(spacing: 8) {
+                    Text("Select a domain to manage DNS records")
                         .font(.title3)
+                        .foregroundStyle(.secondary)
+                    Text("To connect providers, open Settings (⌘,)")
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                 }
             }
