@@ -1,9 +1,3 @@
-//
-//  ContentView.swift
-//  DNSDeck
-//
-//  Created by Praveen Thirumurugan on 12/10/25.
-//
 
 
 import SwiftUI
@@ -12,6 +6,13 @@ struct ContentView: View {
     @EnvironmentObject private var model: AppModel
     @State private var searchText: String = ""
     @State private var showingError = false
+    
+    private var selectedZoneBinding: Binding<ProviderZone?> {
+        Binding(
+            get: { model.selectedZone },
+            set: { model.selectZone($0) }
+        )
+    }
 
     private var filteredZones: [ProviderZone] {
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -25,7 +26,7 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $model.selectedZone) {
+            List(selection: selectedZoneBinding) {
                 Section("Domains") {
                     if filteredZones.isEmpty {
                         Text(model.isLoading ? "Loading…" : "No zones found")

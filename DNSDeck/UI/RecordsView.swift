@@ -1,9 +1,3 @@
-//
-//  RecordsView.swift
-//  DNSDeck
-//
-//  Created by Praveen Thirumurugan on 12/10/25.
-//
 
 
 import SwiftUI
@@ -14,6 +8,7 @@ struct RecordsView: View {
 
     @State private var selection = Set<String>()
     @State private var showAdd = false
+    @State private var showEdit = false
     @State private var isSubmitting = false
     @State private var searchText = ""
     @State private var showDeleteConfirmation = false
@@ -29,6 +24,12 @@ struct RecordsView: View {
             || $0.type.lowercased().contains(q)
             || recordContentText(for: $0).lowercased().contains(q)
         }
+    }
+    
+    var selectedRecord: ProviderRecord? {
+        guard selection.count == 1,
+              let selectedId = selection.first else { return nil }
+        return model.records.first { $0.id == selectedId }
     }
     
     private var recordsTable: some View {
@@ -59,6 +60,24 @@ struct RecordsView: View {
             TableColumn("Priority") { (record: ProviderRecord) in
                 Text(record.priority.map(String.init) ?? "—")
             }
+        }
+        .contextMenu(forSelectionType: String.self) { items in
+            if items.count == 1 {
+                Button("Edit") {
+                    showEdit = true
+                }
+                .disabled(isSubmitting)
+                
+                Divider()
+            }
+            
+            Button("Delete", role: .destructive) {
+                pendingDeleteIDs = Array(items)
+                if !pendingDeleteIDs.isEmpty {
+                    showDeleteConfirmation = true
+                }
+            }
+            .disabled(items.isEmpty || isSubmitting)
         }
     }
     
@@ -98,6 +117,11 @@ struct RecordsView: View {
                 .disabled(isSubmitting)
 
                 Button {
+                    showEdit = true
+                } label: { Label("Edit", systemImage: "pencil") }
+                .disabled(selection.count != 1 || isSubmitting)
+
+                Button {
                     Task { await model.refreshRecords(for: zone) }
                 } label: { Label("Refresh", systemImage: "arrow.clockwise") }
 
@@ -114,6 +138,13 @@ struct RecordsView: View {
             AddRecordSheet(zone: zone, isSubmitting: $isSubmitting)
                 .environmentObject(model)
                 .frame(width: 520)
+        }
+        .sheet(isPresented: $showEdit) {
+            if let record = selectedRecord {
+                EditRecordSheet(zone: zone, record: record, isSubmitting: $isSubmitting)
+                    .environmentObject(model)
+                    .frame(width: 520)
+            }
         }
         .alert("Delete Records?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -211,27 +242,18 @@ struct RecordsView: View {
     }
     
     private func deleteRecordsWithErrorHandling(ids: [String]) async {
-        do {
-            // Clear any previous errors
+        // Clear any previous errors
+        model.error = nil
+        
+        await model.deleteRecords(in: zone, recordIds: ids)
+        
+        // Check if there was an error after the operation
+        if let error = model.error, !error.isEmpty {
             await MainActor.run {
-                model.error = nil
-            }
-            
-            await model.deleteRecords(in: zone, recordIds: ids)
-            
-            // Check if there was an error after the operation
-            await MainActor.run {
-                if let error = model.error, !error.isEmpty {
-                    errorMessage = error
-                    showingError = true
-                    model.error = nil // Clear the model error since we're handling it locally
-                }
-            }
-        } catch {
-            await MainActor.run {
-                errorMessage = error.localizedDescription
+                errorMessage = error
                 showingError = true
             }
+            model.error = nil // Clear the model error since we're handling it locally
         }
     }
 }

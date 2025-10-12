@@ -1,15 +1,5 @@
-//
-//  Route53Models.swift
-//  DNSDeck
-//
-//  Created by ChatGPT on 12/10/25.
-//
-
 import Foundation
 
-// MARK: - AWS Route 53 API Models
-
-// Route 53 Hosted Zone
 struct R53HostedZone: Codable, Identifiable, Hashable {
     let id: String
     let name: String

@@ -1,9 +1,3 @@
-//
-//  CFEnvelope.swift
-//  DNSDeck
-//
-//  Created by Praveen Thirumurugan on 12/10/25.
-//
 
 
 import Foundation

@@ -1,10 +1,3 @@
-//
-//  AppModel.swift
-//  DNSDeck
-//
-//  Created by Praveen Thirumurugan on 12/10/25.
-//
-
 import Foundation
 import SwiftUI
 import Combine
@@ -29,15 +22,7 @@ final class AppModel: ObservableObject {
     // Providers & sidebar data
     let providers: [DNSProvider] = DNSProvider.allCases
     @Published var zones: [ProviderZone] = []
-    @Published var selectedZone: ProviderZone? {
-        didSet {
-            if let zone = selectedZone {
-                Task { await refreshRecords(for: zone) }
-            } else {
-                records.removeAll()
-            }
-        }
-    }
+    @Published var selectedZone: ProviderZone?
 
     // Main table data
     @Published var records: [ProviderRecord] = []
@@ -138,9 +123,9 @@ final class AppModel: ObservableObject {
 
         self.zones = aggregated.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         if let current = selectedZone, !aggregated.contains(current) {
-            selectedZone = aggregated.first
+            selectZone(aggregated.first)
         } else if selectedZone == nil {
-            selectedZone = aggregated.first
+            selectZone(aggregated.first)
         }
     }
 
@@ -162,6 +147,15 @@ final class AppModel: ObservableObject {
             }
         } catch {
             self.error = error.localizedDescription
+        }
+    }
+
+    func selectZone(_ zone: ProviderZone?) {
+        selectedZone = zone
+        if let zone = zone {
+            Task { await refreshRecords(for: zone) }
+        } else {
+            records.removeAll()
         }
     }
 

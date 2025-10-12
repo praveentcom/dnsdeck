@@ -1,10 +1,3 @@
-//
-//  PreferencesView.swift
-//  DNSDeck
-//
-//  Created by Praveen Thirumurugan on 12/10/25.
-//
-
 import SwiftUI
 import AppKit
 
@@ -214,8 +207,6 @@ struct PreferencesView: View {
     }
   }
 }
-
-// MARK: - Helper Views
 
 struct FeatureRow: View {
   let icon: String

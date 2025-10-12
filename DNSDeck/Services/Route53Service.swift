@@ -1,10 +1,3 @@
-//
-//  Route53Service.swift
-//  DNSDeck
-//
-//  Created by ChatGPT on 12/10/25.
-//
-
 import Foundation
 import CryptoKit
 

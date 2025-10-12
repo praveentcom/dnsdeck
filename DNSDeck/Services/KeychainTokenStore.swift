@@ -1,9 +1,3 @@
-//
-//  TokenStore.swift
-//  DNSDeck
-//
-//  Created by Praveen Thirumurugan on 12/10/25.
-//
 
 
 import Foundation
@@ -81,8 +75,6 @@ final class KeychainTokenStore: TokenStore {
         }
     }
 }
-
-// MARK: - Route 53 Credentials Store
 
 struct Route53Credentials {
     let accessKeyId: String

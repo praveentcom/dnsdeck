@@ -1,9 +1,3 @@
-//
-//  CFAPIError.swift
-//  DNSDeck
-//
-//  Created by Praveen Thirumurugan on 12/10/25.
-//
 
 
 import Foundation
@@ -120,7 +114,6 @@ final class CloudflareService {
     }
 }
 
-// Helper to encode arbitrary Encodable
 private struct AnyEncodable: Encodable {
     private let _encode: (Encoder) throws -> Void
     init(_ wrapped: Encodable) { self._encode = wrapped.encode }
