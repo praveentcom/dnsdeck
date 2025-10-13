@@ -151,11 +151,13 @@ final class AppModel: ObservableObject {
     }
 
     func selectZone(_ zone: ProviderZone?) {
-        selectedZone = zone
-        if let zone = zone {
-            Task { await refreshRecords(for: zone) }
-        } else {
-            records.removeAll()
+        Task { @MainActor in
+            selectedZone = zone
+            if let zone = zone {
+                await refreshRecords(for: zone)
+            } else {
+                records.removeAll()
+            }
         }
     }
 

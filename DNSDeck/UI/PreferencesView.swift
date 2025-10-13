@@ -19,7 +19,7 @@ struct PreferencesView: View {
                 HStack(alignment: .center, spacing: 8) {
                   Image(provider.imageName)
                     .resizable()
-                    .frame(width: 20, height: 20)
+                    .frame(width: 24, height: 24)
 
                   Text(provider.displayName)
                     .font(.title3.weight(.semibold))

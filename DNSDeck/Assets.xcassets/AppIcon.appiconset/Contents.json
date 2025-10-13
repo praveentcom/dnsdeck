@@ -1,61 +1,61 @@
 {
   "images" : [
     {
-      "filename" : "Logo@16w.png",
+      "filename" : "Logo Dark@16w.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "16x16"
     },
     {
-      "filename" : "Logo@32w.png",
+      "filename" : "Logo Dark@32w 1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "16x16"
     },
     {
-      "filename" : "Logo@32w.png",
+      "filename" : "Logo Dark@32w.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "32x32"
     },
     {
-      "filename" : "Logo@64w.png",
+      "filename" : "Logo Dark@64w.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "32x32"
     },
     {
-      "filename" : "Logo@128w.png",
+      "filename" : "Logo Dark@128w.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "128x128"
     },
     {
-      "filename" : "Logo@256w.png",
+      "filename" : "Logo Dark@256w 1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "128x128"
     },
     {
-      "filename" : "Logo@256w.png",
+      "filename" : "Logo Dark@256w.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "256x256"
     },
     {
-      "filename" : "Logo.png",
+      "filename" : "Logo Dark@512w.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "256x256"
     },
     {
-      "filename" : "Logo.png",
+      "filename" : "Logo Dark@512w 1.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
-      "filename" : "Logo@2x.png",
+      "filename" : "Logo Dark@1024w.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"

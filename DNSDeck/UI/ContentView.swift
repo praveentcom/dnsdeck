@@ -78,6 +78,6 @@ struct ContentView: View {
     private func providerTag(for provider: DNSProvider) -> some View {
       Image(provider.imageName)
         .resizable()
-        .frame(width: 20, height: 20)
+        .frame(width: 24, height: 24)
     }
 }

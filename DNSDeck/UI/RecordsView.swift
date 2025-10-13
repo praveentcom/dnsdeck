@@ -32,6 +32,37 @@ struct RecordsView: View {
         return model.records.first { $0.id == selectedId }
     }
     
+    private var noRecordsView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            
+            VStack(spacing: 8) {
+                Text(searchText.isEmpty ? "No Records Found" : "No Matching Records")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                Text(searchText.isEmpty ? 
+                     "This zone doesn't have any DNS records yet." : 
+                     "No records match your search criteria.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            
+            if searchText.isEmpty {
+                Button("Add Record") {
+                    showAdd = true
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isSubmitting)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 40)
+    }
+    
     private var recordsTable: some View {
         Table(filteredRecords, selection: $selection) {
             TableColumn("Type") { (record: ProviderRecord) in
@@ -92,15 +123,19 @@ struct RecordsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            recordsTable
-            .overlay {
-                if model.isLoading {
-                    LoadingOverlay(text: "Loading records…")
-                    .transition(.opacity)
+            if filteredRecords.isEmpty && !model.isLoading {
+                noRecordsView
+            } else {
+                recordsTable
+                .overlay {
+                    if model.isLoading {
+                        LoadingOverlay(text: "Loading records…")
+                        .transition(.opacity)
+                    }
                 }
             }
-            .searchable(text: $searchText)
         }
+        .searchable(text: $searchText)
         .navigationTitle(zone.name)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -199,7 +234,7 @@ struct RecordsView: View {
     private func typeBadge(_ type: String) -> some View {
         Text(type.uppercased())
             .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .foregroundStyle(.white)
             .background(
@@ -225,13 +260,13 @@ struct RecordsView: View {
 
     private func badgeColor(for type: String) -> Color {
         switch type.uppercased() {
-        case "A": .indigo
+        case "A": .purple
         case "AAAA": .purple
-        case "CNAME": .pink
-        case "TXT": .blue
-        case "MX": .green
-        case "NS": .teal
-        case "SRV": .orange
+        case "CNAME": .teal
+        case "TXT": .gray
+        case "MX": .blue
+        case "NS": .gray
+        case "SRV": .gray
         case "CAA": .red
         default: .gray
         }
@@ -263,7 +298,7 @@ private struct LoadingOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.15)
+            Color.black.opacity(0.1)
                 .ignoresSafeArea()
 
             VStack(spacing: 12) {
