@@ -1,17 +1,23 @@
+import Combine
 import Foundation
 import SwiftUI
-import Combine
 
 @MainActor
 final class AppModel: ObservableObject {
     // Replace with your own bundle id / service id
-    private let cloudflareTokenStore = KeychainTokenStore(service: Constants.keychainService, account: "cloudflare.token")
+    private let cloudflareTokenStore = KeychainTokenStore(
+        service: Constants.keychainService,
+        account: "cloudflare.token"
+    )
     private let route53CredentialsStore = KeychainRoute53CredentialsStore(service: Constants.keychainService)
+
+    // New systems
+    let errorHandler = ErrorHandler()
 
     lazy var cloudflareAPI = CloudflareService { [weak self] in
         (try? self?.cloudflareTokenStore.read()) ?? nil
     }
-    
+
     lazy var route53API = Route53Service { [weak self] in
         guard let credentials = try? self?.route53CredentialsStore.read() else {
             return (accessKeyId: nil, secretAccessKey: nil)
@@ -26,9 +32,13 @@ final class AppModel: ObservableObject {
 
     // Main table data
     @Published var records: [ProviderRecord] = []
-    @Published var isLoading: Bool = false
+    @Published var isLoading = false
     @Published var error: String?
     @Published var zoneError: String?
+
+    // Expose error handler for views
+    var currentError: AppError? { errorHandler.currentError }
+    var isShowingError: Bool { errorHandler.isShowingError }
 
     // Credential bindings for PreferencesView
     @Published private var editableCredentials: [DNSProvider: String] = [:]
@@ -37,17 +47,17 @@ final class AppModel: ObservableObject {
     init() {
         // Load Cloudflare token into binding
         if let token = try? cloudflareTokenStore.read() {
-            let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
+            let trimmed = token.trimmed
+            if trimmed.isNotEmpty {
                 editableCredentials[.cloudflare] = trimmed
             }
         }
-        
+
         // Load Route 53 credentials into bindings
         if let credentials = try? route53CredentialsStore.read() {
-            let trimmedAccessKey = credentials.accessKeyId.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedSecretKey = credentials.secretAccessKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedAccessKey.isEmpty && !trimmedSecretKey.isEmpty {
+            let trimmedAccessKey = credentials.accessKeyId.trimmed
+            let trimmedSecretKey = credentials.secretAccessKey.trimmed
+            if trimmedAccessKey.isNotEmpty, trimmedSecretKey.isNotEmpty {
                 editableCredentials[.route53] = trimmedAccessKey
                 editableSecondaryCredentials[.route53] = trimmedSecretKey
             }
@@ -60,7 +70,7 @@ final class AppModel: ObservableObject {
             set: { self.editableCredentials[provider] = $0 }
         )
     }
-    
+
     func secondaryCredentialBinding(for provider: DNSProvider) -> Binding<String> {
         Binding(
             get: { self.editableSecondaryCredentials[provider] ?? "" },
@@ -70,7 +80,7 @@ final class AppModel: ObservableObject {
 
     func saveCredential(for provider: DNSProvider) {
         let credential = editableCredentials[provider, default: ""]
-        
+
         do {
             switch provider {
             case .cloudflare:
@@ -99,7 +109,7 @@ final class AppModel: ObservableObject {
     }
 
     func refreshZones() async {
-        self.isLoading = true
+        isLoading = true
         defer { self.isLoading = false }
         var aggregated: [ProviderZone] = []
 
@@ -108,52 +118,55 @@ final class AppModel: ObservableObject {
                 switch provider {
                 case .cloudflare:
                     let credential = sanitizedCredential(for: provider)
-                    guard !credential.isEmpty else { continue }
+                    guard credential.isNotEmpty else { continue }
+
                     let zones = try await cloudflareAPI.listZones()
-                    aggregated.append(contentsOf: zones.map { ProviderZone(provider: provider, zone: $0) })
+                    let providerZones = zones.map { ProviderZone(provider: provider, zone: $0) }
+                    aggregated.append(contentsOf: providerZones)
+
                 case .route53:
                     guard isProviderConnected(provider) else { continue }
+
                     let zones = try await route53API.listHostedZones()
-                    aggregated.append(contentsOf: zones.map { ProviderZone(provider: provider, zone: $0) })
+                    let providerZones = zones.map { ProviderZone(provider: provider, zone: $0) }
+                    aggregated.append(contentsOf: providerZones)
                 }
             } catch {
-                self.zoneError = "\(provider.displayName): \(error.localizedDescription)"
+                errorHandler.handle(AppError.network(.serverError(500)))
             }
         }
 
-        self.zones = aggregated.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        zones = aggregated.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         if let current = selectedZone, !aggregated.contains(current) {
-            selectZone(aggregated.first)
-        } else if selectedZone == nil {
-            selectZone(aggregated.first)
+            selectZone(nil)
         }
     }
 
     func refreshRecords(for zone: ProviderZone) async {
-        self.isLoading = true
+        isLoading = true
         defer { self.isLoading = false }
         do {
             switch zone.provider {
             case .cloudflare:
-                if case .cloudflare(let cfZone) = zone.zoneData {
+                if case let .cloudflare(cfZone) = zone.zoneData {
                     let cfRecords = try await cloudflareAPI.listRecords(zoneId: cfZone.id)
-                    self.records = cfRecords.map { ProviderRecord(provider: .cloudflare, record: $0) }
+                    records = cfRecords.map { ProviderRecord(provider: .cloudflare, record: $0) }
                 }
             case .route53:
-                if case .route53(let r53Zone) = zone.zoneData {
+                if case let .route53(r53Zone) = zone.zoneData {
                     let r53Records = try await route53API.listResourceRecordSets(hostedZoneId: r53Zone.id)
-                    self.records = r53Records.map { ProviderRecord(provider: .route53, record: $0) }
+                    records = r53Records.map { ProviderRecord(provider: .route53, record: $0) }
                 }
             }
         } catch {
-            self.error = error.localizedDescription
+            errorHandler.handle(AppError.network(.serverError(500)))
         }
     }
 
     func selectZone(_ zone: ProviderZone?) {
         Task { @MainActor in
             selectedZone = zone
-            if let zone = zone {
+            if let zone {
                 await refreshRecords(for: zone)
             } else {
                 records.removeAll()
@@ -176,14 +189,17 @@ final class AppModel: ObservableObject {
         do {
             switch zone.provider {
             case .cloudflare:
-                if case .cloudflare(let cfZone) = zone.zoneData {
+                if case let .cloudflare(cfZone) = zone.zoneData {
                     _ = try await cloudflareAPI.createRecord(zoneId: cfZone.id, payload: payload.toCloudflareRequest())
                 }
             case .route53:
-                if case .route53(let r53Zone) = zone.zoneData {
+                if case let .route53(r53Zone) = zone.zoneData {
                     // Get the zone name without trailing dot for conversion
                     let zoneName = r53Zone.name.hasSuffix(".") ? String(r53Zone.name.dropLast()) : r53Zone.name
-                    _ = try await route53API.createRecord(hostedZoneId: r53Zone.id, request: payload.toRoute53Request(zoneName: zoneName))
+                    _ = try await route53API.createRecord(
+                        hostedZoneId: r53Zone.id,
+                        request: payload.toRoute53Request(zoneName: zoneName)
+                    )
                 }
             }
             await refreshRecords(for: zone)
@@ -195,22 +211,22 @@ final class AppModel: ObservableObject {
             do {
                 switch zone.provider {
                 case .cloudflare:
-                    if case .cloudflare(let cfZone) = zone.zoneData {
+                    if case let .cloudflare(cfZone) = zone.zoneData {
                         // Extract the actual record ID from the provider record ID
                         let actualId = recordId.replacingOccurrences(of: "cloudflare|", with: "")
                         try await cloudflareAPI.deleteRecord(zoneId: cfZone.id, recordId: actualId)
                     }
                 case .route53:
-                    if case .route53(let r53Zone) = zone.zoneData {
+                    if case let .route53(r53Zone) = zone.zoneData {
                         // Find the record to delete
                         if let record = records.first(where: { $0.id == recordId }),
-                           case .route53(let r53Record) = record.recordData {
+                           case let .route53(r53Record) = record.recordData
+                        {
                             _ = try await route53API.deleteRecord(hostedZoneId: r53Zone.id, record: r53Record)
                         }
                     }
                 }
-            }
-            catch { self.error = error.localizedDescription }
+            } catch { self.error = error.localizedDescription }
         }
         await refreshRecords(for: zone)
     }
@@ -219,16 +235,25 @@ final class AppModel: ObservableObject {
         do {
             switch zone.provider {
             case .cloudflare:
-                if case .cloudflare(let cfZone) = zone.zoneData,
-                   case .cloudflare(let cfRecord) = record.recordData {
-                    _ = try await cloudflareAPI.updateRecord(zoneId: cfZone.id, recordId: cfRecord.id, payload: edits.toCloudflareRequest())
+                if case let .cloudflare(cfZone) = zone.zoneData,
+                   case let .cloudflare(cfRecord) = record.recordData
+                {
+                    _ = try await cloudflareAPI.updateRecord(
+                        zoneId: cfZone.id,
+                        recordId: cfRecord.id,
+                        payload: edits.toCloudflareRequest()
+                    )
                 }
             case .route53:
-                if case .route53(let r53Zone) = zone.zoneData,
-                   case .route53(let r53Record) = record.recordData {
+                if case let .route53(r53Zone) = zone.zoneData,
+                   case let .route53(r53Record) = record.recordData
+                {
                     // Get the zone name without trailing dot for conversion
                     let zoneName = r53Zone.name.hasSuffix(".") ? String(r53Zone.name.dropLast()) : r53Zone.name
-                    _ = try await route53API.updateRecord(hostedZoneId: r53Zone.id, request: edits.toRoute53Request(oldRecord: r53Record, zoneName: zoneName))
+                    _ = try await route53API.updateRecord(
+                        hostedZoneId: r53Zone.id,
+                        request: edits.toRoute53Request(oldRecord: r53Record, zoneName: zoneName)
+                    )
                 }
             }
             await refreshRecords(for: zone)
@@ -238,10 +263,8 @@ final class AppModel: ObservableObject {
     private func sanitizedCredential(for provider: DNSProvider) -> String {
         editableCredentials[provider]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
-    
+
     private func sanitizedSecondaryCredential(for provider: DNSProvider) -> String {
         editableSecondaryCredentials[provider]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
-    
 }
-

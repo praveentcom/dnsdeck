@@ -55,7 +55,7 @@ struct CreateDNSRecordRequest: Encodable {
     var type: String
     var name: String
     var content: String?
-    var ttl: Int?      // 1 = automatic
+    var ttl: Int? // 1 = automatic
     var proxied: Bool?
     var priority: Int?
     var data: RecordData?

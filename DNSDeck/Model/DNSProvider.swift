@@ -9,38 +9,38 @@ enum DNSProvider: String, CaseIterable, Identifiable {
 
     var imageName: String {
         switch self {
-        case .cloudflare: return "Cloudflare"
-        case .route53: return "Amazon Route 53"
+        case .cloudflare: "Cloudflare"
+        case .route53: "Amazon Route 53"
         }
     }
 
     var displayName: String {
         switch self {
-        case .cloudflare: return "Cloudflare"
-        case .route53: return "Amazon Route 53"
+        case .cloudflare: "Cloudflare"
+        case .route53: "Amazon Route 53"
         }
     }
 
     var description: String {
         switch self {
         case .cloudflare:
-            return "Scopes required: Zone:DNS:Edit, Zone:DNS:Read."
+            "Scopes required: Zone:DNS:Edit, Zone:DNS:Read."
         case .route53:
-            return "Requires AWS Access Key ID and Secret Access Key with Route53 permissions."
+            "Requires AWS Access Key ID and Secret Access Key with Route53 permissions."
         }
     }
 
     var credentialFieldLabel: String {
         switch self {
-        case .cloudflare: return "API Token"
-        case .route53: return "Access Key ID"
+        case .cloudflare: "API Token"
+        case .route53: "Access Key ID"
         }
     }
 
     var credentialPlaceholder: String {
         switch self {
-        case .cloudflare: return "Paste token"
-        case .route53: return "AKIA..."
+        case .cloudflare: "Paste token"
+        case .route53: "AKIA..."
         }
     }
 
@@ -51,12 +51,12 @@ enum DNSProvider: String, CaseIterable, Identifiable {
     var setupLink: (title: String, url: URL)? {
         switch self {
         case .cloudflare:
-            return (
+            (
                 "Create an API token ↗",
                 URL(string: "https://dash.cloudflare.com/profile/api-tokens")!
             )
         case .route53:
-            return (
+            (
                 "Create access keys ↗",
                 URL(string: "https://console.aws.amazon.com/iam/home#/security_credentials")!
             )
@@ -65,31 +65,30 @@ enum DNSProvider: String, CaseIterable, Identifiable {
 
     var symbolName: String {
         switch self {
-        case .cloudflare: return "cloud"
-        case .route53: return "server.rack"
+        case .cloudflare: "cloud"
+        case .route53: "server.rack"
         }
     }
-    
+
     // Route 53 requires two credentials
     var requiresSecondaryCredential: Bool {
         switch self {
-        case .cloudflare: return false
-        case .route53: return true
+        case .cloudflare: false
+        case .route53: true
         }
     }
-    
+
     var secondaryCredentialFieldLabel: String? {
         switch self {
-        case .cloudflare: return nil
-        case .route53: return "Secret Access Key"
+        case .cloudflare: nil
+        case .route53: "Secret Access Key"
         }
     }
-    
+
     var secondaryCredentialPlaceholder: String? {
         switch self {
-        case .cloudflare: return nil
-        case .route53: return "Secret key"
+        case .cloudflare: nil
+        case .route53: "Secret key"
         }
     }
 }
-

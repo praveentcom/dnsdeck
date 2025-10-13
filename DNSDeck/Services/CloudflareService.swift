@@ -9,10 +9,10 @@ enum CFAPIError: Error, LocalizedError {
     case decoding(Error)
     var errorDescription: String? {
         switch self {
-        case .missingToken: return "Cloudflare API token is missing."
-        case .http(let code): return "HTTP error \(code)."
-        case .cloudflare(let errs): return errs.map(\.message).joined(separator: "\n")
-        case .decoding(let e): return "Decoding error: \(e.localizedDescription)"
+        case .missingToken: "Cloudflare API token is missing."
+        case let .http(code): "HTTP error \(code)."
+        case let .cloudflare(errs): errs.map(\.message).joined(separator: "\n")
+        case let .decoding(e): "Decoding error: \(e.localizedDescription)"
         }
     }
 }
@@ -33,8 +33,10 @@ final class CloudflareService {
         var page = 1
         repeat {
             var comps = URLComponents(url: base.appendingPathComponent("zones"), resolvingAgainstBaseURL: false)!
-            var q: [URLQueryItem] = [URLQueryItem(name: "per_page", value: "\(Constants.Pagination.cloudflarePageSize)"),
-                                     URLQueryItem(name: "page", value: "\(page)")]
+            var q: [URLQueryItem] = [
+                URLQueryItem(name: "per_page", value: "\(Constants.Pagination.cloudflarePageSize)"),
+                URLQueryItem(name: "page", value: "\(page)"),
+            ]
             if let name = nameFilter, !name.isEmpty {
                 q.append(URLQueryItem(name: "name", value: name))
             }
@@ -53,9 +55,14 @@ final class CloudflareService {
         var all: [CFDNSRecord] = []
         var page = 1
         repeat {
-            var comps = URLComponents(url: base.appendingPathComponent("zones/\(zoneId)/dns_records"), resolvingAgainstBaseURL: false)!
-            comps.queryItems = [URLQueryItem(name: "per_page", value: "\(Constants.Pagination.cloudflareMaxPageSize)"),
-                                URLQueryItem(name: "page", value: "\(page)")]
+            var comps = URLComponents(
+                url: base.appendingPathComponent("zones/\(zoneId)/dns_records"),
+                resolvingAgainstBaseURL: false
+            )!
+            comps.queryItems = [
+                URLQueryItem(name: "per_page", value: "\(Constants.Pagination.cloudflareMaxPageSize)"),
+                URLQueryItem(name: "page", value: "\(page)"),
+            ]
             let env: CFEnvelope<[CFDNSRecord]> = try await request(url: comps.url!, method: "GET")
             if let result = env.result { all += result }
             let next = (env.result_info?.page ?? page) < (env.result_info?.total_pages ?? page)
@@ -93,14 +100,14 @@ final class CloudflareService {
         req.httpMethod = method
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
-        if let body = body {
+        if let body {
             req.httpBody = try JSONEncoder().encode(AnyEncodable(body))
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
         let (data, resp) = try await urlSession.data(for: req)
         guard let http = resp as? HTTPURLResponse else { throw CFAPIError.http(-1) }
-        guard (200..<300).contains(http.statusCode) else {
+        guard (200 ..< 300).contains(http.statusCode) else {
             // Cloudflare still wraps errors in JSON; try decode for better message.
             if let env = try? JSONDecoder().decode(CFEnvelope<[String: String]>.self, from: data), !env.success {
                 throw CFAPIError.cloudflare(env.errors)
@@ -117,6 +124,6 @@ final class CloudflareService {
 
 private struct AnyEncodable: Encodable {
     private let _encode: (Encoder) throws -> Void
-    init(_ wrapped: Encodable) { self._encode = wrapped.encode }
+    init(_ wrapped: Encodable) { _encode = wrapped.encode }
     func encode(to encoder: Encoder) throws { try _encode(encoder) }
 }

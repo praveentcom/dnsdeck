@@ -16,8 +16,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AC61C2872E9BD3CD00CBE016"
-               BuildableName = "DNSDeck.app"
-               BlueprintName = "DNSDeck"
+               BuildableName = "DNSDeck macOS.app"
+               BlueprintName = "DNSDeck macOS"
                ReferencedContainer = "container:DNSDeck.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,8 +45,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AC61C2872E9BD3CD00CBE016"
-            BuildableName = "DNSDeck.app"
-            BlueprintName = "DNSDeck"
+            BuildableName = "DNSDeck macOS.app"
+            BlueprintName = "DNSDeck macOS"
             ReferencedContainer = "container:DNSDeck.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,8 +62,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AC61C2872E9BD3CD00CBE016"
-            BuildableName = "DNSDeck.app"
-            BlueprintName = "DNSDeck"
+            BuildableName = "DNSDeck macOS.app"
+            BlueprintName = "DNSDeck macOS"
             ReferencedContainer = "container:DNSDeck.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

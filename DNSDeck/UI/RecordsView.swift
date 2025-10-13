@@ -6,136 +6,138 @@ struct RecordsView: View {
     @EnvironmentObject private var model: AppModel
     let zone: ProviderZone
 
-    @State private var selection = Set<String>()
     @State private var showAdd = false
     @State private var showEdit = false
     @State private var isSubmitting = false
-    @State private var searchText = ""
+    @StateObject private var debouncedSearch = DebouncedSearch()
     @State private var showDeleteConfirmation = false
     @State private var pendingDeleteIDs: [String] = []
-    @State private var showingError = false
-    @State private var errorMessage = ""
+    @State private var selectedRecord: ProviderRecord?
 
     var filteredRecords: [ProviderRecord] {
-        if searchText.isEmpty { return model.records }
-        let q = searchText.lowercased()
-        return model.records.filter {
-            $0.name.lowercased().contains(q)
-            || $0.type.lowercased().contains(q)
-            || recordContentText(for: $0).lowercased().contains(q)
-        }
+        SearchFilter.filterRecords(model.records, searchText: debouncedSearch.debouncedSearchText)
     }
-    
-    var selectedRecord: ProviderRecord? {
-        guard selection.count == 1,
-              let selectedId = selection.first else { return nil }
-        return model.records.first { $0.id == selectedId }
-    }
-    
+
     private var noRecordsView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            
-            VStack(spacing: 8) {
-                Text(searchText.isEmpty ? "No Records Found" : "No Matching Records")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text(searchText.isEmpty ? 
-                     "This zone doesn't have any DNS records yet." : 
-                     "No records match your search criteria.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            
-            if searchText.isEmpty {
-                Button("Add Record") {
-                    showAdd = true
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(isSubmitting)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, 40)
+        EmptyStateView(
+            icon: "doc.text.magnifyingglass",
+            title: debouncedSearch.debouncedSearchText.isEmpty ? "No Records Found" : "No Matching Records",
+            message: debouncedSearch.debouncedSearchText.isEmpty ?
+                "This zone doesn't have any DNS records yet." :
+                "No records match your search criteria.",
+            actionTitle: debouncedSearch.debouncedSearchText.isEmpty ? "Add Record" : nil,
+            action: debouncedSearch.debouncedSearchText.isEmpty ? { showAdd = true } : nil
+        )
+        .disabled(isSubmitting)
     }
-    
+
     private var recordsTable: some View {
-        Table(filteredRecords, selection: $selection) {
+        #if os(macOS)
+        Table(filteredRecords) {
             TableColumn("Type") { (record: ProviderRecord) in
-                typeBadge(record.type)
+                TypeBadge(type: record.type)
             }
-            
+
             TableColumn("Name") { (record: ProviderRecord) in
                 Text(record.name).textSelection(.enabled)
             }
             .width(min: Constants.UI.tableColumnMinWidth)
-            
+
             TableColumn("Content") { (record: ProviderRecord) in
                 Text(recordContentText(for: record))
+                    .font(.body.monospaced())
                     .textSelection(.enabled)
             }
             .width(min: Constants.UI.contentColumnMinWidth)
-            
+
             TableColumn("TTL") { (record: ProviderRecord) in
                 Text(ttlText(record.ttl))
             }
-            
+
             TableColumn("Proxy Status") { (record: ProviderRecord) in
-                proxyStatusView(for: record)
+                if let proxied = record.proxied {
+                    CloudflareProxyIcon(isProxied: proxied)
+                }
             }
-            
+
             TableColumn("Priority") { (record: ProviderRecord) in
-                Text(record.priority.map(String.init) ?? "—")
+                if let priority = record.priority {
+                    PriorityBadge(priority: record.priority)
+                }
             }
         }
-        .contextMenu(forSelectionType: String.self) { items in
-            if items.count == 1 {
+        .contextMenu(forSelectionType: ProviderRecord.ID.self) { items in
+            if let recordId = items.first,
+               let record = model.records.first(where: { $0.id == recordId })
+            {
                 Button("Edit") {
+                    selectedRecord = record
                     showEdit = true
                 }
                 .disabled(isSubmitting)
-                
+
                 Divider()
-            }
-            
-            Button("Delete", role: .destructive) {
-                pendingDeleteIDs = Array(items)
-                if !pendingDeleteIDs.isEmpty {
+
+                Button("Delete", role: .destructive) {
+                    pendingDeleteIDs = [recordId]
                     showDeleteConfirmation = true
                 }
+                .disabled(isSubmitting)
             }
-            .disabled(items.isEmpty || isSubmitting)
         }
+        #else
+        recordsList
+        #endif
     }
-    
-    @ViewBuilder
-    private func proxyStatusView(for record: ProviderRecord) -> some View {
-        if let proxied = record.proxied {
-            proxyStatusIcon(isProxied: proxied)
-        } else {
-            Text("—")
+
+    #if os(iOS)
+    private var recordsList: some View {
+        List(filteredRecords) { record in
+            RecordRowView(record: record)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button("Delete", role: .destructive) {
+                        pendingDeleteIDs = [record.id]
+                        showDeleteConfirmation = true
+                    }
+                    .disabled(isSubmitting)
+
+                    Button("Edit") {
+                        selectedRecord = record
+                        showEdit = true
+                    }
+                    .disabled(isSubmitting)
+                    .tint(.accent)
+                }
+                .contextMenu {
+                    Button("Edit") {
+                        selectedRecord = record
+                        showEdit = true
+                    }
+                    .disabled(isSubmitting)
+
+                    Divider()
+
+                    Button("Delete", role: .destructive) {
+                        pendingDeleteIDs = [record.id]
+                        showDeleteConfirmation = true
+                    }
+                    .disabled(isSubmitting)
+                }
         }
+        .listStyle(.plain)
     }
+    #endif
 
     var body: some View {
         VStack(spacing: 0) {
-            if filteredRecords.isEmpty && !model.isLoading {
+            if filteredRecords.isEmpty, !model.isLoading {
                 noRecordsView
             } else {
                 recordsTable
-                .overlay {
-                    if model.isLoading {
-                        LoadingOverlay(text: "Loading records…")
-                        .transition(.opacity)
-                    }
-                }
+                    .loadingOverlay(text: "Loading records…", isVisible: model.isLoading)
             }
         }
-        .searchable(text: $searchText)
+        .searchable(text: $debouncedSearch.searchText)
         .navigationTitle(zone.name)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -152,41 +154,31 @@ struct RecordsView: View {
                 .disabled(isSubmitting)
 
                 Button {
-                    showEdit = true
-                } label: { Label("Edit", systemImage: "pencil") }
-                .disabled(selection.count != 1 || isSubmitting)
-
-                Button {
                     Task { await model.refreshRecords(for: zone) }
                 } label: { Label("Refresh", systemImage: "arrow.clockwise") }
-
-                Button(role: .destructive) {
-                    pendingDeleteIDs = Array(selection)
-                    if !pendingDeleteIDs.isEmpty {
-                        showDeleteConfirmation = true
-                    }
-                } label: { Label("Delete", systemImage: "trash") }
-                .disabled(selection.isEmpty)
             }
         }
         .sheet(isPresented: $showAdd) {
             AddRecordSheet(zone: zone, isSubmitting: $isSubmitting)
                 .environmentObject(model)
+            #if os(macOS)
                 .frame(width: 520)
+            #endif
         }
         .sheet(isPresented: $showEdit) {
             if let record = selectedRecord {
                 EditRecordSheet(zone: zone, record: record, isSubmitting: $isSubmitting)
                     .environmentObject(model)
+                #if os(macOS)
                     .frame(width: 520)
+                #endif
             }
         }
         .alert("Delete Records?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
                 let ids = pendingDeleteIDs
-                selection.removeAll()
                 pendingDeleteIDs = []
-                Task { 
+                Task {
                     await deleteRecordsWithErrorHandling(ids: ids)
                 }
             }
@@ -197,18 +189,14 @@ struct RecordsView: View {
             let count = pendingDeleteIDs.count
             Text("\(count) record\(count == 1 ? "" : "s") will be deleted and cannot be reversed.")
         }
-        .alert("Error", isPresented: $showingError) {
-            Button("OK") { }
-        } message: {
-            Text(errorMessage)
-        }
+        .withErrorHandling(model.errorHandler)
     }
 
     private func recordContentText(for record: ProviderRecord) -> String {
         // For SRV records, try to extract structured data if available
         if record.type.uppercased() == "SRV" {
             switch record.recordData {
-            case .cloudflare(let cfRecord):
+            case let .cloudflare(cfRecord):
                 if let data = cfRecord.data {
                     let priority = data.priority.map(String.init) ?? "-"
                     let weight = data.weight.map(String.init) ?? "-"
@@ -230,90 +218,83 @@ struct RecordsView: View {
         return ttl == 1 ? "Auto" : "\(ttl)s"
     }
 
-    @ViewBuilder
-    private func typeBadge(_ type: String) -> some View {
-        Text(type.uppercased())
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .foregroundStyle(.white)
-            .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(badgeColor(for: type))
-            )
-            .help(type)
-    }
-
-    @ViewBuilder
-    private func proxyStatusIcon(isProxied: Bool) -> some View {
-        if isProxied {
-            Image("Cloudflare")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 18, height: 18)
-                .help("Traffic is proxied via Cloudflare")
-        } else {
-            Image(systemName: "bolt.horizontal.circle")
-                .help("Traffic goes directly over DNS")
-        }
-    }
-
-    private func badgeColor(for type: String) -> Color {
-        switch type.uppercased() {
-        case "A": .purple
-        case "AAAA": .purple
-        case "CNAME": .teal
-        case "TXT": .gray
-        case "MX": .blue
-        case "NS": .gray
-        case "SRV": .gray
-        case "CAA": .red
-        default: .gray
-        }
-    }
-
     private var overlayCardBackground: some ShapeStyle {
+        #if os(macOS)
         Color(nsColor: .windowBackgroundColor)
+        #else
+        Color(uiColor: .systemBackground)
+        #endif
     }
-    
+
     private func deleteRecordsWithErrorHandling(ids: [String]) async {
-        // Clear any previous errors
-        model.error = nil
-        
         await model.deleteRecords(in: zone, recordIds: ids)
-        
-        // Check if there was an error after the operation
-        if let error = model.error, !error.isEmpty {
-            await MainActor.run {
-                errorMessage = error
-                showingError = true
-            }
-            model.error = nil // Clear the model error since we're handling it locally
-        }
     }
 }
 
-private struct LoadingOverlay: View {
-    let text: String
+#if os(iOS)
+private struct RecordRowView: View {
+    let record: ProviderRecord
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.1)
-                .ignoresSafeArea()
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 8) {
+                TypeBadge(type: record.type)
+                if let priority = record.priority {
+                    PriorityBadge(priority: priority)
+                }
 
-            VStack(spacing: 12) {
-                ProgressView()
-                    .controlSize(.large)
+                Spacer()
 
-                Text(text)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+                if let proxied = record.proxied {
+                    CloudflareProxyIcon(isProxied: proxied)
+                }
+
+                if let ttl = record.ttl {
+                    Text("TTL: \(ttlText(ttl))")
+                        .font(.callout.monospaced())
+                        .foregroundStyle(.secondary)
+                }
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 22)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: .black.opacity(0.2), radius: 12, y: 4)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(record.name)
+                    .font(.callout.monospaced())
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                Text(recordContentText(for: record))
+                    .font(.callout.monospaced())
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+            }
         }
+        .padding(.vertical, 4)
+    }
+
+    private func recordContentText(for record: ProviderRecord) -> String {
+        // For SRV records, try to extract structured data if available
+        if record.type.uppercased() == "SRV" {
+            switch record.recordData {
+            case let .cloudflare(cfRecord):
+                if let data = cfRecord.data {
+                    let priority = data.priority.map(String.init) ?? "-"
+                    let weight = data.weight.map(String.init) ?? "-"
+                    let port = data.port.map(String.init) ?? "-"
+                    let target = (data.target ?? "-").trimmingCharacters(in: .whitespacesAndNewlines)
+                    let parts = [priority, weight, port, target.isEmpty ? "-" : target]
+                    return parts.joined(separator: " ")
+                }
+            case .route53:
+                // Route 53 SRV records are stored as plain text content
+                break
+            }
+        }
+        return record.content
+    }
+
+    private func ttlText(_ ttl: Int?) -> String {
+        guard let ttl else { return "—" }
+        return ttl == 1 ? "Auto" : "\(ttl)s"
     }
 }
+#endif

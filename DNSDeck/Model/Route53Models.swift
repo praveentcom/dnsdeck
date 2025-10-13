@@ -6,7 +6,7 @@ struct R53HostedZone: Codable, Identifiable, Hashable {
     let callerReference: String?
     let config: R53HostedZoneConfig?
     let resourceRecordSetCount: Int?
-    
+
     enum CodingKeys: String, CodingKey {
         case id = "Id"
         case name = "Name"
@@ -19,7 +19,7 @@ struct R53HostedZone: Codable, Identifiable, Hashable {
 struct R53HostedZoneConfig: Codable, Hashable {
     let privateZone: Bool?
     let comment: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case privateZone = "PrivateZone"
         case comment = "Comment"
@@ -40,13 +40,13 @@ struct R53ResourceRecordSet: Codable, Identifiable, Hashable {
     let multiValueAnswer: Bool?
     let setIdentifier: String?
     let healthCheckId: String?
-    
+
     var id: String {
         // Create a unique identifier combining name, type, and setIdentifier
         let identifier = setIdentifier ?? ""
         return "\(name)|\(type)|\(identifier)"
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case name = "Name"
         case type = "Type"
@@ -65,7 +65,7 @@ struct R53ResourceRecordSet: Codable, Identifiable, Hashable {
 
 struct R53ResourceRecord: Codable, Hashable {
     let value: String
-    
+
     enum CodingKeys: String, CodingKey {
         case value = "Value"
     }
@@ -75,7 +75,7 @@ struct R53AliasTarget: Codable, Hashable {
     let dnsName: String
     let hostedZoneId: String
     let evaluateTargetHealth: Bool
-    
+
     enum CodingKeys: String, CodingKey {
         case dnsName = "DNSName"
         case hostedZoneId = "HostedZoneId"
@@ -87,7 +87,7 @@ struct R53GeoLocation: Codable, Hashable {
     let continentCode: String?
     let countryCode: String?
     let subdivisionCode: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case continentCode = "ContinentCode"
         case countryCode = "CountryCode"
@@ -102,7 +102,7 @@ struct R53ListHostedZonesResponse: Codable {
     let isTruncated: Bool
     let nextMarker: String?
     let maxItems: String
-    
+
     enum CodingKeys: String, CodingKey {
         case hostedZones = "HostedZones"
         case marker = "Marker"
@@ -119,7 +119,7 @@ struct R53ListResourceRecordSetsResponse: Codable {
     let nextRecordType: String?
     let nextRecordIdentifier: String?
     let maxItems: String
-    
+
     enum CodingKeys: String, CodingKey {
         case resourceRecordSets = "ResourceRecordSets"
         case isTruncated = "IsTruncated"
@@ -134,7 +134,7 @@ struct R53ListResourceRecordSetsResponse: Codable {
 struct R53ChangeBatch: Codable {
     let comment: String?
     let changes: [R53Change]
-    
+
     enum CodingKeys: String, CodingKey {
         case comment = "Comment"
         case changes = "Changes"
@@ -144,7 +144,7 @@ struct R53ChangeBatch: Codable {
 struct R53Change: Codable {
     let action: String // "CREATE", "DELETE", "UPSERT"
     let resourceRecordSet: R53ResourceRecordSet
-    
+
     enum CodingKeys: String, CodingKey {
         case action = "Action"
         case resourceRecordSet = "ResourceRecordSet"
@@ -153,7 +153,7 @@ struct R53Change: Codable {
 
 struct R53ChangeResourceRecordSetsRequest: Codable {
     let changeBatch: R53ChangeBatch
-    
+
     enum CodingKeys: String, CodingKey {
         case changeBatch = "ChangeBatch"
     }
@@ -161,7 +161,7 @@ struct R53ChangeResourceRecordSetsRequest: Codable {
 
 struct R53ChangeResourceRecordSetsResponse: Codable {
     let changeInfo: R53ChangeInfo
-    
+
     enum CodingKeys: String, CodingKey {
         case changeInfo = "ChangeInfo"
     }
@@ -172,7 +172,7 @@ struct R53ChangeInfo: Codable {
     let status: String
     let submittedAt: String
     let comment: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case id = "Id"
         case status = "Status"
@@ -189,7 +189,7 @@ struct CreateR53RecordRequest {
     let values: [String]
     let weight: Int?
     let setIdentifier: String?
-    
+
     func toResourceRecordSet() -> R53ResourceRecordSet {
         R53ResourceRecordSet(
             name: name,
@@ -216,7 +216,7 @@ struct UpdateR53RecordRequest {
     let values: [String]?
     let weight: Int?
     let setIdentifier: String?
-    
+
     func toResourceRecordSet() -> R53ResourceRecordSet {
         R53ResourceRecordSet(
             name: name ?? oldRecord.name,

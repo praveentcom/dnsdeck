@@ -5,20 +5,20 @@ import Foundation
 enum ProviderZoneData: Hashable {
     case cloudflare(CFZone)
     case route53(R53HostedZone)
-    
+
     var id: String {
         switch self {
-        case .cloudflare(let zone): return zone.id
-        case .route53(let zone): return zone.id
+        case let .cloudflare(zone): zone.id
+        case let .route53(zone): zone.id
         }
     }
-    
+
     var name: String {
         switch self {
-        case .cloudflare(let zone): return zone.name
-        case .route53(let zone): 
+        case let .cloudflare(zone): zone.name
+        case let .route53(zone):
             // Remove trailing dot from Route 53 FQDN for display
-            return zone.name.hasSuffix(".") ? String(zone.name.dropLast()) : zone.name
+            zone.name.hasSuffix(".") ? String(zone.name.dropLast()) : zone.name
         }
     }
 }
@@ -29,16 +29,16 @@ struct ProviderZone: Identifiable, Hashable {
 
     var id: String { "\(provider.rawValue)|\(zoneData.id)" }
     var name: String { zoneData.name }
-    
+
     // Convenience initializers
     init(provider: DNSProvider, zone: CFZone) {
         self.provider = provider
-        self.zoneData = .cloudflare(zone)
+        zoneData = .cloudflare(zone)
     }
-    
+
     init(provider: DNSProvider, zone: R53HostedZone) {
         self.provider = provider
-        self.zoneData = .route53(zone)
+        zoneData = .route53(zone)
     }
 }
 
@@ -46,54 +46,54 @@ struct ProviderZone: Identifiable, Hashable {
 enum ProviderRecordData: Hashable {
     case cloudflare(CFDNSRecord)
     case route53(R53ResourceRecordSet)
-    
+
     var id: String {
         switch self {
-        case .cloudflare(let record): return record.id
-        case .route53(let record): return record.id
+        case let .cloudflare(record): record.id
+        case let .route53(record): record.id
         }
     }
-    
+
     var name: String {
         switch self {
-        case .cloudflare(let record): return record.name
-        case .route53(let record): return record.name
+        case let .cloudflare(record): record.name
+        case let .route53(record): record.name
         }
     }
-    
+
     var type: String {
         switch self {
-        case .cloudflare(let record): return record.type
-        case .route53(let record): return record.type
+        case let .cloudflare(record): record.type
+        case let .route53(record): record.type
         }
     }
-    
+
     var content: String {
         switch self {
-        case .cloudflare(let record): return record.content
-        case .route53(let record): 
-            return record.resourceRecords?.first?.value ?? record.aliasTarget?.dnsName ?? ""
+        case let .cloudflare(record): record.content
+        case let .route53(record):
+            record.resourceRecords?.first?.value ?? record.aliasTarget?.dnsName ?? ""
         }
     }
-    
+
     var ttl: Int? {
         switch self {
-        case .cloudflare(let record): return record.ttl
-        case .route53(let record): return record.ttl
+        case let .cloudflare(record): record.ttl
+        case let .route53(record): record.ttl
         }
     }
-    
+
     var proxied: Bool? {
         switch self {
-        case .cloudflare(let record): return record.proxied
-        case .route53: return nil // Route 53 doesn't have proxy functionality
+        case let .cloudflare(record): record.proxied
+        case .route53: nil // Route 53 doesn't have proxy functionality
         }
     }
-    
+
     var priority: Int? {
         switch self {
-        case .cloudflare(let record): return record.priority
-        case .route53: return nil // Route 53 doesn't store priority separately
+        case let .cloudflare(record): record.priority
+        case .route53: nil // Route 53 doesn't store priority separately
         }
     }
 }
@@ -101,7 +101,7 @@ enum ProviderRecordData: Hashable {
 struct ProviderRecord: Identifiable, Hashable {
     let provider: DNSProvider
     let recordData: ProviderRecordData
-    
+
     var id: String { "\(provider.rawValue)|\(recordData.id)" }
     var name: String { recordData.name }
     var type: String { recordData.type }
@@ -109,16 +109,16 @@ struct ProviderRecord: Identifiable, Hashable {
     var ttl: Int? { recordData.ttl }
     var proxied: Bool? { recordData.proxied }
     var priority: Int? { recordData.priority }
-    
+
     // Convenience initializers
     init(provider: DNSProvider, record: CFDNSRecord) {
         self.provider = provider
-        self.recordData = .cloudflare(record)
+        recordData = .cloudflare(record)
     }
-    
+
     init(provider: DNSProvider, record: R53ResourceRecordSet) {
         self.provider = provider
-        self.recordData = .route53(record)
+        recordData = .route53(record)
     }
 }
 
@@ -129,7 +129,7 @@ struct CreateProviderRecordRequest {
     let content: String
     let ttl: Int?
     let proxied: Bool? // Only for Cloudflare
-    
+
     func toCloudflareRequest() -> CreateDNSRecordRequest {
         CreateDNSRecordRequest(
             type: type,
@@ -141,7 +141,7 @@ struct CreateProviderRecordRequest {
             data: nil
         )
     }
-    
+
     func toRoute53Request() -> CreateR53RecordRequest {
         CreateR53RecordRequest(
             name: name,
@@ -152,21 +152,20 @@ struct CreateProviderRecordRequest {
             setIdentifier: nil
         )
     }
-    
+
     func toRoute53Request(zoneName: String) -> CreateR53RecordRequest {
         // Convert to fully qualified domain name for Route 53
-        let r53Name: String
-        if name == "@" {
+        let r53Name: String = if name == "@" {
             // Root domain
-            r53Name = "\(zoneName)."
+            "\(zoneName)."
         } else if name.hasSuffix(".") {
             // Already fully qualified
-            r53Name = name
+            name
         } else {
             // Subdomain - append zone name
-            r53Name = "\(name).\(zoneName)."
+            "\(name).\(zoneName)."
         }
-        
+
         return CreateR53RecordRequest(
             name: r53Name,
             type: type,
@@ -185,7 +184,7 @@ struct UpdateProviderRecordRequest {
     let content: String?
     let ttl: Int?
     let proxied: Bool? // Only for Cloudflare
-    
+
     func toCloudflareRequest() -> UpdateDNSRecordRequest {
         UpdateDNSRecordRequest(
             type: type,
@@ -197,25 +196,24 @@ struct UpdateProviderRecordRequest {
             data: nil
         )
     }
-    
+
     func toRoute53Request(oldRecord: R53ResourceRecordSet, zoneName: String) -> UpdateR53RecordRequest {
         // Convert to fully qualified domain name for Route 53
-        let r53Name: String?
-        if let name = name {
+        let r53Name: String? = if let name {
             if name == "@" {
                 // Root domain
-                r53Name = "\(zoneName)."
+                "\(zoneName)."
             } else if name.hasSuffix(".") {
                 // Already fully qualified
-                r53Name = name
+                name
             } else {
                 // Subdomain - append zone name
-                r53Name = "\(name).\(zoneName)."
+                "\(name).\(zoneName)."
             }
         } else {
-            r53Name = nil
+            nil
         }
-        
+
         return UpdateR53RecordRequest(
             oldRecord: oldRecord,
             name: r53Name,
@@ -226,7 +224,7 @@ struct UpdateProviderRecordRequest {
             setIdentifier: nil
         )
     }
-    
+
     func toRoute53Request(oldRecord: R53ResourceRecordSet) -> UpdateR53RecordRequest {
         UpdateR53RecordRequest(
             oldRecord: oldRecord,
@@ -239,4 +237,3 @@ struct UpdateProviderRecordRequest {
         )
     }
 }
-

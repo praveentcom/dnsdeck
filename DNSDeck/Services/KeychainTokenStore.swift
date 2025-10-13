@@ -27,7 +27,7 @@ final class KeychainTokenStore: TokenStore {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             // Enable iCloud Keychain sync:
             kSecAttrSynchronizable as String: kCFBooleanTrue as Any,
-            kSecValueData as String: data
+            kSecValueData as String: data,
         ]
         var status = SecItemAdd(query as CFDictionary, nil)
         if status == errSecDuplicateItem {
@@ -35,7 +35,7 @@ final class KeychainTokenStore: TokenStore {
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrService as String: service,
                 kSecAttrAccount as String: account,
-                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+                kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             ]
             let attrs: [String: Any] = [kSecValueData as String: data]
             status = SecItemUpdate(match as CFDictionary, attrs as CFDictionary)
@@ -51,7 +51,7 @@ final class KeychainTokenStore: TokenStore {
             // Accept either synced or local:
             kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             kSecReturnData as String: kCFBooleanTrue as Any,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -67,7 +67,7 @@ final class KeychainTokenStore: TokenStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
         ]
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
@@ -90,25 +90,26 @@ protocol Route53CredentialsStore {
 final class KeychainRoute53CredentialsStore: Route53CredentialsStore {
     private let accessKeyStore: KeychainTokenStore
     private let secretKeyStore: KeychainTokenStore
-    
+
     init(service: String) {
-        self.accessKeyStore = KeychainTokenStore(service: service, account: "route53.access_key_id")
-        self.secretKeyStore = KeychainTokenStore(service: service, account: "route53.secret_access_key")
+        accessKeyStore = KeychainTokenStore(service: service, account: "route53.access_key_id")
+        secretKeyStore = KeychainTokenStore(service: service, account: "route53.secret_access_key")
     }
-    
+
     func save(_ credentials: Route53Credentials) throws {
         try accessKeyStore.save(credentials.accessKeyId)
         try secretKeyStore.save(credentials.secretAccessKey)
     }
-    
+
     func read() throws -> Route53Credentials? {
         guard let accessKeyId = try accessKeyStore.read(),
-              let secretAccessKey = try secretKeyStore.read() else {
+              let secretAccessKey = try secretKeyStore.read()
+        else {
             return nil
         }
         return Route53Credentials(accessKeyId: accessKeyId, secretAccessKey: secretAccessKey)
     }
-    
+
     func delete() throws {
         try accessKeyStore.delete()
         try secretKeyStore.delete()

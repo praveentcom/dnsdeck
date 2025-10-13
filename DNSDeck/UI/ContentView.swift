@@ -4,9 +4,12 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var searchText: String = ""
+    @State private var searchText = ""
     @State private var showingError = false
-    
+    #if os(iOS)
+    @State private var showingSettings = false
+    #endif
+
     private var selectedZoneBinding: Binding<ProviderZone?> {
         Binding(
             get: { model.selectedZone },
@@ -47,6 +50,17 @@ struct ContentView: View {
             .listStyle(.sidebar)
             .navigationTitle("DNSDeck")
             .searchable(text: $searchText, placement: .sidebar)
+            #if os(iOS)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            showingSettings = true
+                        } label: {
+                            Image(systemName: "gear")
+                        }
+                    }
+                }
+            #endif
         } detail: {
             if let zone = model.selectedZone {
                 RecordsView(zone: zone)
@@ -55,12 +69,37 @@ struct ContentView: View {
                     Text("Select a domain to manage DNS records")
                         .font(.title3)
                         .foregroundStyle(.secondary)
+                    #if os(macOS)
                     Text("To connect providers, open Settings (⌘,)")
                         .font(.callout)
                         .foregroundStyle(.secondary)
+                    #else
+                    Text("To connect providers, tap the settings icon")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    #endif
                 }
             }
         }
+        #if os(iOS)
+        .sheet(isPresented: $showingSettings, onDismiss: {
+            Task { await model.refreshZones() }
+        }) {
+            NavigationView {
+                PreferencesView()
+                    .environmentObject(model)
+                    .navigationTitle("Settings")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingSettings = false
+                            }
+                        }
+                    }
+            }
+        }
+        #endif
         .alert("Error Loading Zones", isPresented: $showingError) {
             Button("OK") {
                 model.zoneError = nil
@@ -69,15 +108,15 @@ struct ContentView: View {
             Text(model.zoneError ?? "An unknown error occurred")
         }
         .onChange(of: model.zoneError) { _, newError in
-            if newError != nil && !newError!.isEmpty {
+            if newError != nil, !newError!.isEmpty {
                 showingError = true
             }
         }
     }
 
     private func providerTag(for provider: DNSProvider) -> some View {
-      Image(provider.imageName)
-        .resizable()
-        .frame(width: 24, height: 24)
+        Image(provider.imageName)
+            .resizable()
+            .frame(width: 24, height: 24)
     }
 }

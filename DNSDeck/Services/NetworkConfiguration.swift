@@ -9,12 +9,12 @@ enum NetworkConfiguration {
         config.urlCache = nil
         config.httpMaximumConnectionsPerHost = 4
         config.waitsForConnectivity = true
-        
+
         // Add user agent
         config.httpAdditionalHeaders = [
-            "User-Agent": "DNSDeck/1.0 (macOS)"
+            "User-Agent": "DNSDeck/1.0 (macOS)",
         ]
-        
+
         return URLSession(configuration: config)
     }()
 }
