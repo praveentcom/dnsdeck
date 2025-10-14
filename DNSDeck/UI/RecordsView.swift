@@ -62,7 +62,7 @@ struct RecordsView: View {
 
             TableColumn("Priority") { (record: ProviderRecord) in
                 if let priority = record.priority {
-                    PriorityBadge(priority: record.priority)
+                    PriorityBadge(priority: priority)
                 }
             }
         }
