@@ -4,7 +4,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var searchText = ""
+    @StateObject private var debouncedSearch = DebouncedSearch()
     @State private var showingError = false
     #if os(iOS)
     @State private var showingSettings = false
@@ -18,10 +18,10 @@ struct ContentView: View {
     }
 
     private var filteredZones: [ProviderZone] {
-        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard !debouncedSearch.debouncedSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return model.zones
         }
-        let query = searchText.lowercased()
+        let query = debouncedSearch.debouncedSearchText.lowercased()
         return model.zones.filter { zone in
             zone.name.lowercased().contains(query)
         }
@@ -49,7 +49,7 @@ struct ContentView: View {
             }
             .listStyle(.sidebar)
             .navigationTitle("DNSDeck")
-            .searchable(text: $searchText, placement: .sidebar)
+            .searchable(text: $debouncedSearch.searchText, placement: .sidebar)
             #if os(iOS)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
