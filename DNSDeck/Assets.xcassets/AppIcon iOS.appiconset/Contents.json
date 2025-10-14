@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "Logo Light iOS@1024w.png",
+      "filename" : "Logo Light iOS@2x.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -13,7 +13,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "Logo Dark iOS@1024w.png",
+      "filename" : "Logo Dark iOS@2x.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -25,7 +25,7 @@
           "value" : "tinted"
         }
       ],
-      "filename" : "Logo Tinted iOS@1024w.png",
+      "filename" : "Logo Tinted iOS@2x.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
