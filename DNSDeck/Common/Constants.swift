@@ -43,7 +43,7 @@ enum Constants {
     // UI Constants
     enum UI {
         #if os(macOS)
-        static let minimumWindowWidth: CGFloat = 800
+        static let minimumWindowWidth: CGFloat = 1200
         static let minimumWindowHeight: CGFloat = 800
         static let preferencesWindowWidth: CGFloat = 640
         static let preferencesWindowHeight: CGFloat = 480

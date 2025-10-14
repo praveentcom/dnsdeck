@@ -11,6 +11,8 @@ struct EditRecordSheet: View {
     let zone: ProviderZone
     let record: ProviderRecord
     @Binding var isSubmitting: Bool
+    
+    @StateObject private var localErrorHandler = ErrorHandler()
 
     @State private var type: String
     @State private var name: String
@@ -116,7 +118,7 @@ struct EditRecordSheet: View {
 
                     TTLField(ttlAuto: $ttlAuto, ttlValue: $ttlValue)
 
-                    if ["A", "AAAA", "CNAME"].contains(type) {
+                    if ["A", "AAAA", "CNAME"].contains(type) && zone.provider == .cloudflare {
                         Toggle("Proxy via Cloudflare", isOn: $proxied)
                             .toggleStyle(.switch)
                             .help("Only A/AAAA/CNAME can be proxied through Cloudflare.")
@@ -205,7 +207,7 @@ struct EditRecordSheet: View {
 
                     TTLField(ttlAuto: $ttlAuto, ttlValue: $ttlValue)
 
-                    if ["A", "AAAA", "CNAME"].contains(type) {
+                    if ["A", "AAAA", "CNAME"].contains(type) && zone.provider == .cloudflare {
                         Toggle("Proxy via Cloudflare", isOn: $proxied)
                             .toggleStyle(.switch)
                             .help("Only A/AAAA/CNAME can be proxied through Cloudflare.")
@@ -239,7 +241,7 @@ struct EditRecordSheet: View {
                 }
             }
             .onAppear(perform: parseExistingRecord)
-            .withErrorHandling(model.errorHandler)
+            .withErrorHandling(localErrorHandler)
         }
         #if os(macOS)
         .frame(minWidth: 520)
@@ -349,7 +351,8 @@ struct EditRecordSheet: View {
             type: nil, // Type cannot be changed
             content: hasContentChanged ? contentValue : nil,
             ttl: hasTTLChanged ? ttl : nil,
-            proxied: hasProxiedChanged ? (["A", "AAAA", "CNAME"].contains(type) ? proxied : nil) : nil
+            proxied: hasProxiedChanged ? (["A", "AAAA", "CNAME"].contains(type) ? proxied : nil) : nil,
+            priority: hasPriorityChanged ? (type == "MX" ? mxPriority : nil) : nil
         )
 
         Task {
@@ -357,13 +360,41 @@ struct EditRecordSheet: View {
             defer { isSubmitting = false }
 
             // Clear any previous errors
-            model.error = nil
+            localErrorHandler.clearError()
 
-            await model.updateRecord(in: zone, record: record, edits: payload)
-
-            // Only dismiss if there was no error
-            await MainActor.run {
-                dismiss()
+            do {
+                // Call the model's update function directly but handle errors locally
+                switch zone.provider {
+                case .cloudflare:
+                    if case let .cloudflare(cfZone) = zone.zoneData,
+                       case let .cloudflare(cfRecord) = record.recordData
+                    {
+                        _ = try await model.cloudflareAPI.updateRecord(
+                            zoneId: cfZone.id,
+                            recordId: cfRecord.id,
+                            payload: payload.toCloudflareRequest()
+                        )
+                    }
+                case .route53:
+                    if case let .route53(r53Zone) = zone.zoneData,
+                       case let .route53(r53Record) = record.recordData
+                    {
+                        let zoneName = r53Zone.name.hasSuffix(".") ? String(r53Zone.name.dropLast()) : r53Zone.name
+                        _ = try await model.route53API.updateRecord(
+                            hostedZoneId: r53Zone.id,
+                            request: payload.toRoute53Request(oldRecord: r53Record, zoneName: zoneName)
+                        )
+                    }
+                }
+                
+                // If successful, refresh records and dismiss
+                await model.refreshRecords(for: zone)
+                await MainActor.run {
+                    dismiss()
+                }
+            } catch {
+                // Handle error locally
+                localErrorHandler.handle(error)
             }
         }
     }
@@ -384,7 +415,7 @@ struct EditRecordSheet: View {
     }
 
     private var hasChanges: Bool {
-        hasNameChanged || hasContentChanged || hasTTLChanged || hasProxiedChanged
+        hasNameChanged || hasContentChanged || hasTTLChanged || hasProxiedChanged || hasPriorityChanged
     }
 
     private var hasNameChanged: Bool {
@@ -404,6 +435,11 @@ struct EditRecordSheet: View {
     private var hasProxiedChanged: Bool {
         guard ["A", "AAAA", "CNAME"].contains(type) else { return false }
         return proxied != (record.proxied ?? false)
+    }
+
+    private var hasPriorityChanged: Bool {
+        guard type == "MX" else { return false }
+        return mxPriority != (record.priority ?? 10)
     }
 
     private var trimmedName: String {

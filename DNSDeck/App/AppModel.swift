@@ -203,7 +203,7 @@ final class AppModel: ObservableObject {
                 }
             }
             await refreshRecords(for: zone)
-        } catch { self.error = error.localizedDescription }
+        } catch { errorHandler.handle(error) }
     }
 
     func deleteRecords(in zone: ProviderZone, recordIds: [String]) async {
@@ -226,7 +226,7 @@ final class AppModel: ObservableObject {
                         }
                     }
                 }
-            } catch { self.error = error.localizedDescription }
+            } catch { errorHandler.handle(error) }
         }
         await refreshRecords(for: zone)
     }
@@ -257,7 +257,7 @@ final class AppModel: ObservableObject {
                 }
             }
             await refreshRecords(for: zone)
-        } catch { self.error = error.localizedDescription }
+        } catch { errorHandler.handle(error) }
     }
 
     private func sanitizedCredential(for provider: DNSProvider) -> String {

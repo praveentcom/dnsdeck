@@ -129,6 +129,7 @@ struct CreateProviderRecordRequest {
     let content: String
     let ttl: Int?
     let proxied: Bool? // Only for Cloudflare
+    let priority: Int? // For MX records
 
     func toCloudflareRequest() -> CreateDNSRecordRequest {
         CreateDNSRecordRequest(
@@ -137,7 +138,7 @@ struct CreateProviderRecordRequest {
             content: content,
             ttl: ttl,
             proxied: proxied,
-            priority: nil,
+            priority: priority,
             data: nil
         )
     }
@@ -184,6 +185,7 @@ struct UpdateProviderRecordRequest {
     let content: String?
     let ttl: Int?
     let proxied: Bool? // Only for Cloudflare
+    let priority: Int? // For MX records
 
     func toCloudflareRequest() -> UpdateDNSRecordRequest {
         UpdateDNSRecordRequest(
@@ -192,7 +194,7 @@ struct UpdateProviderRecordRequest {
             content: content,
             ttl: ttl,
             proxied: proxied,
-            priority: nil,
+            priority: priority,
             data: nil
         )
     }

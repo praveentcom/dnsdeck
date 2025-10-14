@@ -7,7 +7,6 @@ struct RecordsView: View {
     let zone: ProviderZone
 
     @State private var showAdd = false
-    @State private var showEdit = false
     @State private var isSubmitting = false
     @StateObject private var debouncedSearch = DebouncedSearch()
     @State private var showDeleteConfirmation = false
@@ -37,34 +36,35 @@ struct RecordsView: View {
             TableColumn("Type") { (record: ProviderRecord) in
                 TypeBadge(type: record.type)
             }
+            .width(min: 80, ideal: 100, max: 120)
 
             TableColumn("Name") { (record: ProviderRecord) in
                 Text(record.name).textSelection(.enabled)
             }
-            .width(min: Constants.UI.tableColumnMinWidth)
+            .width(min: Constants.UI.tableColumnMinWidth, ideal: 200, max: .infinity)
 
             TableColumn("Content") { (record: ProviderRecord) in
-                Text(recordContentText(for: record))
-                    .font(.body.monospaced())
+              HStack(alignment: .center, spacing: 6) {
+                  if let proxied = record.proxied {
+                      CloudflareProxyIcon(isProxied: proxied)
+                  }
+                  Text(recordContentText(for: record))
                     .textSelection(.enabled)
+                }
             }
-            .width(min: Constants.UI.contentColumnMinWidth)
+            .width(min: Constants.UI.contentColumnMinWidth, ideal: 300, max: .infinity)
 
             TableColumn("TTL") { (record: ProviderRecord) in
                 Text(ttlText(record.ttl))
             }
-
-            TableColumn("Proxy Status") { (record: ProviderRecord) in
-                if let proxied = record.proxied {
-                    CloudflareProxyIcon(isProxied: proxied)
-                }
-            }
+            .width(min: 60, ideal: 80, max: 100)
 
             TableColumn("Priority") { (record: ProviderRecord) in
                 if let priority = record.priority {
                     PriorityBadge(priority: priority)
                 }
             }
+            .width(min: 40, ideal: 40, max: 80)
         }
         .contextMenu(forSelectionType: ProviderRecord.ID.self) { items in
             if let recordId = items.first,
@@ -72,7 +72,6 @@ struct RecordsView: View {
             {
                 Button("Edit") {
                     selectedRecord = record
-                    showEdit = true
                 }
                 .disabled(isSubmitting)
 
@@ -103,7 +102,6 @@ struct RecordsView: View {
 
                     Button("Edit") {
                         selectedRecord = record
-                        showEdit = true
                     }
                     .disabled(isSubmitting)
                     .tint(.accent)
@@ -111,7 +109,6 @@ struct RecordsView: View {
                 .contextMenu {
                     Button("Edit") {
                         selectedRecord = record
-                        showEdit = true
                     }
                     .disabled(isSubmitting)
 
@@ -165,14 +162,12 @@ struct RecordsView: View {
                 .frame(width: 520)
             #endif
         }
-        .sheet(isPresented: $showEdit) {
-            if let record = selectedRecord {
-                EditRecordSheet(zone: zone, record: record, isSubmitting: $isSubmitting)
-                    .environmentObject(model)
-                #if os(macOS)
-                    .frame(width: 520)
-                #endif
-            }
+        .sheet(item: $selectedRecord) { record in
+            EditRecordSheet(zone: zone, record: record, isSubmitting: $isSubmitting)
+                .environmentObject(model)
+            #if os(macOS)
+                .frame(width: 520)
+            #endif
         }
         .alert("Delete Records?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -251,12 +246,12 @@ private struct RecordRowView: View {
 
                 if let ttl = record.ttl {
                     Text("TTL: \(ttlText(ttl))")
-                        .font(.callout.monospaced())
+                        .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                 }
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading) {
                 Text(record.name)
                     .font(.callout.monospaced())
                     .foregroundStyle(.primary)

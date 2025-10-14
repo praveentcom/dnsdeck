@@ -11,6 +11,8 @@ struct AddRecordSheet: View {
 
     let zone: ProviderZone
     @Binding var isSubmitting: Bool
+    
+    @StateObject private var localErrorHandler = ErrorHandler()
 
     @State private var type = "A"
     @State private var name = ""
@@ -73,7 +75,7 @@ struct AddRecordSheet: View {
 
                     TTLField(ttlAuto: $ttlAuto, ttlValue: $ttlValue)
 
-                    if ["A", "AAAA", "CNAME"].contains(type) {
+                    if ["A", "AAAA", "CNAME"].contains(type) && zone.provider == .cloudflare {
                         Toggle("Proxy via Cloudflare", isOn: $proxied)
                             .toggleStyle(.switch)
                             .help("Only A/AAAA/CNAME can be proxied through Cloudflare.")
@@ -149,7 +151,7 @@ struct AddRecordSheet: View {
 
                     TTLField(ttlAuto: $ttlAuto, ttlValue: $ttlValue)
 
-                    if ["A", "AAAA", "CNAME"].contains(type) {
+                    if ["A", "AAAA", "CNAME"].contains(type) && zone.provider == .cloudflare {
                         Toggle("Proxy via Cloudflare", isOn: $proxied)
                             .toggleStyle(.switch)
                             .help("Only A/AAAA/CNAME can be proxied through Cloudflare.")
@@ -184,7 +186,7 @@ struct AddRecordSheet: View {
             }
             .onAppear(perform: syncTypeDefaults)
             .onChange(of: type) { syncTypeDefaults() }
-            .withErrorHandling(model.errorHandler)
+            .withErrorHandling(localErrorHandler)
         }
         #if os(macOS)
         .frame(minWidth: 520)
@@ -227,7 +229,8 @@ struct AddRecordSheet: View {
             type: type,
             content: contentValue ?? "",
             ttl: ttl,
-            proxied: ["A", "AAAA", "CNAME"].contains(type) ? proxied : nil
+            proxied: ["A", "AAAA", "CNAME"].contains(type) ? proxied : nil,
+            priority: type == "MX" ? mxPriority : nil
         )
 
         Task {
@@ -235,13 +238,33 @@ struct AddRecordSheet: View {
             defer { isSubmitting = false }
 
             // Clear any previous errors
-            model.error = nil
+            localErrorHandler.clearError()
 
-            await model.createRecord(in: zone, payload: payload)
-
-            // Only dismiss if there was no error
-            await MainActor.run {
-                dismiss()
+            do {
+                // Call the model's create function directly but handle errors locally
+                switch zone.provider {
+                case .cloudflare:
+                    if case let .cloudflare(cfZone) = zone.zoneData {
+                        _ = try await model.cloudflareAPI.createRecord(zoneId: cfZone.id, payload: payload.toCloudflareRequest())
+                    }
+                case .route53:
+                    if case let .route53(r53Zone) = zone.zoneData {
+                        let zoneName = r53Zone.name.hasSuffix(".") ? String(r53Zone.name.dropLast()) : r53Zone.name
+                        _ = try await model.route53API.createRecord(
+                            hostedZoneId: r53Zone.id,
+                            request: payload.toRoute53Request(zoneName: zoneName)
+                        )
+                    }
+                }
+                
+                // If successful, refresh records and dismiss
+                await model.refreshRecords(for: zone)
+                await MainActor.run {
+                    dismiss()
+                }
+            } catch {
+                // Handle error locally
+                localErrorHandler.handle(error)
             }
         }
     }
