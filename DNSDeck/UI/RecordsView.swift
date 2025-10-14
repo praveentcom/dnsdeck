@@ -94,11 +94,12 @@ struct RecordsView: View {
         List(filteredRecords) { record in
             RecordRowView(record: record)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button("Delete", role: .destructive) {
+                    Button("Delete", role: .none) {
                         pendingDeleteIDs = [record.id]
                         showDeleteConfirmation = true
                     }
                     .disabled(isSubmitting)
+                    .tint(.red)
 
                     Button("Edit") {
                         selectedRecord = record
