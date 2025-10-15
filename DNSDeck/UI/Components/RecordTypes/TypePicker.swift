@@ -17,11 +17,11 @@ struct TypePicker: View {
         } label: {
             HStack {
                 Text(typeLabel(for: type))
-                    .foregroundStyle(.primary)
+                    .foregroundColor(.primary)
                 Spacer()
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
             }
             #if os(iOS)
             .padding(.horizontal, 16)
