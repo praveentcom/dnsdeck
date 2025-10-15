@@ -32,6 +32,7 @@ struct AddRecordSheet: View {
     @State private var caaFlags = 0
     @State private var caaTag = "issue"
     @State private var caaValue = ""
+    @State private var comment = ""
 
     var body: some View {
         #if os(iOS)
@@ -79,6 +80,15 @@ struct AddRecordSheet: View {
                         Toggle("Proxy via Cloudflare", isOn: $proxied)
                             .toggleStyle(.switch)
                             .help("Only A/AAAA/CNAME can be proxied through Cloudflare.")
+                    }
+                    
+                    // Comment field (Cloudflare only)
+                    if zone.provider == .cloudflare {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Comment (Optional)")
+                                .font(.headline)
+                            NativeTextField(placeholder: "Add a comment for this record", text: $comment)
+                        }
                     }
                 }
                 .padding(20)
@@ -156,6 +166,15 @@ struct AddRecordSheet: View {
                             .toggleStyle(.switch)
                             .help("Only A/AAAA/CNAME can be proxied through Cloudflare.")
                     }
+                    
+                    // Comment field (Cloudflare only)
+                    if zone.provider == .cloudflare {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Comment (Optional)")
+                                .font(.headline)
+                            NativeTextField(placeholder: "Add a comment for this record", text: $comment)
+                        }
+                    }
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -230,7 +249,8 @@ struct AddRecordSheet: View {
             content: contentValue ?? "",
             ttl: ttl,
             proxied: ["A", "AAAA", "CNAME"].contains(type) ? proxied : nil,
-            priority: type == "MX" ? mxPriority : nil
+            priority: type == "MX" ? mxPriority : nil,
+            comment: comment.trimmed.isEmpty ? nil : comment.trimmed
         )
 
         Task {

@@ -5,6 +5,8 @@ enum AppError: Error, LocalizedError {
     case keychain(KeychainError)
     case validation(ValidationError)
     case dns(DNSError)
+    case csv(CSVError)
+    case general(String)
     case unknown(Error)
 
     var errorDescription: String? {
@@ -17,6 +19,10 @@ enum AppError: Error, LocalizedError {
             error.localizedDescription
         case let .dns(error):
             error.localizedDescription
+        case let .csv(error):
+            error.localizedDescription
+        case let .general(message):
+            message
         case let .unknown(error):
             error.localizedDescription
         }
@@ -108,6 +114,32 @@ enum DNSError: Error, LocalizedError {
             "Provider error: \(message)"
         case .quotaExceeded:
             "DNS record quota exceeded"
+        }
+    }
+}
+
+enum CSVError: Error, LocalizedError {
+    case fileNotFound
+    case invalidFormat
+    case emptyFile
+    case missingHeaders([String])
+    case invalidData(line: Int, message: String)
+    case tooManyRecords(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .fileNotFound:
+            "CSV file not found"
+        case .invalidFormat:
+            "Invalid CSV file format"
+        case .emptyFile:
+            "CSV file is empty"
+        case let .missingHeaders(headers):
+            "Missing required CSV headers: \(headers.joined(separator: ", "))"
+        case let .invalidData(line, message):
+            "Invalid data on line \(line): \(message)"
+        case let .tooManyRecords(count):
+            "Too many records in CSV file (\(count)). Maximum allowed is 1000."
         }
     }
 }

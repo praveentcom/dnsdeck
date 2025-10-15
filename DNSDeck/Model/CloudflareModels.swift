@@ -48,6 +48,49 @@ struct CFDNSRecord: Codable, Identifiable, Hashable {
     let priority: Int?
     let tags: [String]?
     let data: RecordData?
+    let created_on: Date?
+    let modified_on: Date?
+    let meta: CFRecordMeta?
+    let comment: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case id, type, name, content, ttl, proxied, proxiable, priority, tags, data
+        case created_on, modified_on, meta, comment
+    }
+    
+    // Custom initializer to handle missing timestamp fields gracefully
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Required fields
+        id = try container.decode(String.self, forKey: .id)
+        type = try container.decode(String.self, forKey: .type)
+        name = try container.decode(String.self, forKey: .name)
+        content = try container.decode(String.self, forKey: .content)
+        
+        // Optional fields
+        ttl = try container.decodeIfPresent(Int.self, forKey: .ttl)
+        proxied = try container.decodeIfPresent(Bool.self, forKey: .proxied)
+        proxiable = try container.decodeIfPresent(Bool.self, forKey: .proxiable)
+        priority = try container.decodeIfPresent(Int.self, forKey: .priority)
+        tags = try container.decodeIfPresent([String].self, forKey: .tags)
+        data = try container.decodeIfPresent(RecordData.self, forKey: .data)
+        meta = try container.decodeIfPresent(CFRecordMeta.self, forKey: .meta)
+        comment = try container.decodeIfPresent(String.self, forKey: .comment)
+        
+        // Timestamp fields - handle Cloudflare's ISO8601 format with fractional seconds
+        if let createdString = try? container.decodeIfPresent(String.self, forKey: .created_on) {
+            created_on = parseCloudflareDate(createdString)
+        } else {
+            created_on = nil
+        }
+        
+        if let modifiedString = try? container.decodeIfPresent(String.self, forKey: .modified_on) {
+            modified_on = parseCloudflareDate(modifiedString)
+        } else {
+            modified_on = nil
+        }
+    }
 }
 
 // Create / Update payloads
@@ -59,6 +102,7 @@ struct CreateDNSRecordRequest: Encodable {
     var proxied: Bool?
     var priority: Int?
     var data: RecordData?
+    var comment: String?
 }
 
 struct UpdateDNSRecordRequest: Encodable {
@@ -69,6 +113,7 @@ struct UpdateDNSRecordRequest: Encodable {
     var proxied: Bool?
     var priority: Int?
     var data: RecordData?
+    var comment: String?
 }
 
 struct RecordData: Codable, Hashable {
@@ -82,4 +127,26 @@ struct RecordData: Codable, Hashable {
     var flags: Int?
     var tag: String?
     var value: String?
+}
+
+struct CFRecordMeta: Codable, Hashable {
+    let auto_added: Bool?
+    let managed_by_apps: Bool?
+    let managed_by_argo_tunnel: Bool?
+    let source: String?
+}
+
+// Helper function to parse Cloudflare's timestamp format
+private func parseCloudflareDate(_ dateString: String) -> Date? {
+    // Cloudflare uses ISO8601 with fractional seconds: "2025-10-15T18:55:44.157527Z"
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    
+    if let date = formatter.date(from: dateString) {
+        return date
+    }
+    
+    // Fallback to standard ISO8601 without fractional seconds
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter.date(from: dateString)
 }

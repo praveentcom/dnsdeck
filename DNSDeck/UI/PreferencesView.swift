@@ -202,7 +202,6 @@ struct FeatureRow: View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 16))
-                .foregroundStyle(.accent)
                 .frame(width: 20)
                 .padding(.top, 2)
 

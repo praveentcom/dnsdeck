@@ -1,6 +1,7 @@
 
 
 import Foundation
+import os.log
 
 enum CFAPIError: Error, LocalizedError {
     case missingToken
@@ -115,9 +116,15 @@ final class CloudflareService {
             throw CFAPIError.http(http.statusCode)
         }
         do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            throw CFAPIError.decoding(error)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(T.self, from: data)
+        } catch let decodingError {
+            if let responseString = String(data: data, encoding: .utf8) {
+                Logger.general.error("Cloudflare JSON decoding failed. Response: \(responseString)")
+                Logger.general.error("Decoding error: \(decodingError)")
+            }
+            throw CFAPIError.decoding(decodingError)
         }
     }
 }

@@ -8,7 +8,7 @@
 
 /* Begin PBXFileReference section */
 		AC57C2F62E9D6A88008E3742 /* DNSDeck iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DNSDeck iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		AC61C2882E9BD3CD00CBE016 /* DNSDeck macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DNSDeck macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC61C2882E9BD3CD00CBE016 /* DNSDeck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DNSDeck.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -48,7 +48,7 @@
 		AC61C2892E9BD3CD00CBE016 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AC61C2882E9BD3CD00CBE016 /* DNSDeck macOS.app */,
+				AC61C2882E9BD3CD00CBE016 /* DNSDeck.app */,
 				AC57C2F62E9D6A88008E3742 /* DNSDeck iOS.app */,
 			);
 			name = Products;
@@ -98,7 +98,7 @@
 			packageProductDependencies = (
 			);
 			productName = DNSDeck;
-			productReference = AC61C2882E9BD3CD00CBE016 /* DNSDeck macOS.app */;
+			productReference = AC61C2882E9BD3CD00CBE016 /* DNSDeck.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -198,7 +198,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.dnsdeck.DNSDeck;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -239,7 +239,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.dnsdeck.DNSDeck;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -389,6 +389,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 24J6SG2424;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readonly;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -411,7 +412,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.dnsdeck.DNSDeck;
 				PRODUCT_NAME = DNSDeck;
 				REGISTER_APP_GROUPS = YES;
@@ -436,6 +437,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 24J6SG2424;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readonly;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -458,7 +460,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.dnsdeck.DNSDeck;
 				PRODUCT_NAME = DNSDeck;
 				REGISTER_APP_GROUPS = YES;

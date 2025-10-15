@@ -9,7 +9,8 @@ enum SearchFilter {
         return records.filter { record in
             record.name.lowercased().contains(query) ||
                 record.type.lowercased().contains(query) ||
-                recordContentText(for: record).lowercased().contains(query)
+                recordContentText(for: record).lowercased().contains(query) ||
+                (record.comment?.lowercased().contains(query) ?? false)
         }
     }
 

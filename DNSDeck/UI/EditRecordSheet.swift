@@ -212,6 +212,11 @@ struct EditRecordSheet: View {
                             .toggleStyle(.switch)
                             .help("Only A/AAAA/CNAME can be proxied through Cloudflare.")
                     }
+                    
+                    // Timestamp information (Cloudflare only)
+                    if zone.provider == .cloudflare {
+                        timestampSection
+                    }
                 }
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -256,6 +261,50 @@ struct EditRecordSheet: View {
         default:
             "Record name (e.g. @ or www)"
         }
+    }
+    
+    private var timestampSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Record Information")
+                .font(.subheadline)
+                .fontWeight(.medium)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                if let createdOn = record.createdOn {
+                    HStack {
+                        Text("Created:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(createdOn.displayString())
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                if let modifiedOn = record.modifiedOn {
+                    HStack {
+                        Text("Last Modified:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(modifiedOn.displayString())
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                if record.createdOn == nil && record.modifiedOn == nil {
+                    Text("Timestamp information not available")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .italic()
+                }
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .cornerRadius(8)
     }
 
     private func parseExistingRecord() {

@@ -12,6 +12,13 @@ struct RecordsView: View {
     @State private var showDeleteConfirmation = false
     @State private var pendingDeleteIDs: [String] = []
     @State private var selectedRecord: ProviderRecord?
+    
+    // Multi-selection state for macOS
+    #if os(macOS)
+    @State private var selectedRecordIDs: Set<String> = []
+    @State private var showCSVImport = false
+    @State private var showCommentColumn = false
+    #endif
 
     var filteredRecords: [ProviderRecord] {
         SearchFilter.filterRecords(model.records, searchText: debouncedSearch.debouncedSearchText)
@@ -32,7 +39,12 @@ struct RecordsView: View {
 
     private var recordsTable: some View {
         #if os(macOS)
-        Table(filteredRecords) {
+        Table(filteredRecords, selection: $selectedRecordIDs) {
+            TableColumn("") { (record: ProviderRecord) in
+                EmptyView()
+            }
+            .width(min: 30, ideal: 30, max: 30)
+            
             TableColumn("Type") { (record: ProviderRecord) in
                 TypeBadge(type: record.type)
             }
@@ -64,10 +76,43 @@ struct RecordsView: View {
                     PriorityBadge(priority: priority)
                 }
             }
-            .width(min: 40, ideal: 40, max: 80)
+            .width(min: 60, ideal: 80, max: 80)
+            
+            TableColumn("Modified") { (record: ProviderRecord) in
+                if let modifiedOn = record.modifiedOn {
+                    Text(modifiedOn.compactString())
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .help("Last modified: \(modifiedOn.displayString())")
+                } else {
+                    Text("—")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .width(min: 120, ideal: 120, max: 200)
+            
+            // Comment column (optional, Cloudflare only)
+            if showCommentColumn && zone.provider == .cloudflare {
+                TableColumn("Comment") { (record: ProviderRecord) in
+                    if let comment = record.comment, !comment.isEmpty {
+                        Text(comment)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                            .help(comment)
+                    } else {
+                        Text("—")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .width(min: 100, ideal: 150, max: 200)
+            }
         }
+        .tableStyle(.inset(alternatesRowBackgrounds: false))
         .contextMenu(forSelectionType: ProviderRecord.ID.self) { items in
-            if let recordId = items.first,
+            if items.count == 1, let recordId = items.first,
                let record = model.records.first(where: { $0.id == recordId })
             {
                 Button("Edit") {
@@ -79,6 +124,12 @@ struct RecordsView: View {
 
                 Button("Delete", role: .destructive) {
                     pendingDeleteIDs = [recordId]
+                    showDeleteConfirmation = true
+                }
+                .disabled(isSubmitting)
+            } else if items.count > 1 {
+                Button("Delete \(items.count) Records", role: .destructive) {
+                    pendingDeleteIDs = Array(items)
                     showDeleteConfirmation = true
                 }
                 .disabled(isSubmitting)
@@ -105,7 +156,6 @@ struct RecordsView: View {
                         selectedRecord = record
                     }
                     .disabled(isSubmitting)
-                    .tint(.accent)
                 }
                 .contextMenu {
                     Button("Edit") {
@@ -139,6 +189,36 @@ struct RecordsView: View {
         .navigationTitle(zone.name)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                #if os(macOS)
+                if !selectedRecordIDs.isEmpty {
+                    Button {
+                        pendingDeleteIDs = Array(selectedRecordIDs)
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Delete \(selectedRecordIDs.count) record\(selectedRecordIDs.count == 1 ? "" : "s")", 
+                              systemImage: "trash")
+                    }
+                    .disabled(isSubmitting)
+                }
+                
+                Button {
+                    showCSVImport = true
+                } label: {
+                    Label("Import CSV", systemImage: "square.and.arrow.down")
+                }
+                .disabled(isSubmitting)
+                
+                // Toggle comment column (Cloudflare only)
+                if zone.provider == .cloudflare {
+                    Button {
+                        showCommentColumn.toggle()
+                    } label: {
+                        Label("Comments", systemImage: showCommentColumn ? "text.bubble.fill" : "text.bubble")
+                    }
+                    .help(showCommentColumn ? "Hide comment column" : "Show comment column")
+                }
+                #endif
+                
                 Button {
                     showAdd = true
                 } label: {
@@ -170,10 +250,19 @@ struct RecordsView: View {
                 .frame(width: 520)
             #endif
         }
+        #if os(macOS)
+        .sheet(isPresented: $showCSVImport) {
+            CSVImportSheet(zone: zone, isSubmitting: $isSubmitting)
+                .environmentObject(model)
+        }
+        #endif
         .alert("Delete Records?", isPresented: $showDeleteConfirmation) {
             Button("Delete", role: .destructive) {
                 let ids = pendingDeleteIDs
                 pendingDeleteIDs = []
+                #if os(macOS)
+                selectedRecordIDs.removeAll()
+                #endif
                 Task {
                     await deleteRecordsWithErrorHandling(ids: ids)
                 }
@@ -186,6 +275,17 @@ struct RecordsView: View {
             Text("\(count) record\(count == 1 ? "" : "s") will be deleted and cannot be reversed.")
         }
         .withErrorHandling(model.errorHandler)
+        #if os(macOS)
+        .onChange(of: model.records) {
+            // Clear selection when records change (e.g., after refresh or zone change)
+            selectedRecordIDs.removeAll()
+        }
+        .onKeyPress(.escape) {
+            // Clear selection when escape is pressed
+            selectedRecordIDs.removeAll()
+            return .handled
+        }
+        #endif
     }
 
     private func recordContentText(for record: ProviderRecord) -> String {

@@ -8,25 +8,26 @@ struct TypeBadge: View {
             .font(.caption.weight(.semibold).monospaced())
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .foregroundStyle(badgeColor(for: type))
+            .foregroundStyle(Color.primary)
             .background(
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .stroke(badgeColor(for: type), lineWidth: 1)
+                    .stroke(Color.primary, lineWidth: 1)
             )
             .help(type)
     }
 
-    private func badgeColor(for type: String) -> Color {
-        switch type.uppercased() {
-        case "A": .purple
-        case "AAAA": .purple
-        case "CNAME": .teal
-        case "TXT": .gray
-        case "MX": .blue
-        case "NS": .gray
-        case "SRV": .gray
-        case "CAA": .red
-        default: .gray
-        }
-    }
+//    private func badgeColor(for type: String) -> Color {
+//        switch type.uppercased() {
+//        case "A": .purple
+//        case "AAAA": .purple
+//        case "CNAME": .teal
+//        case "TXT": .gray
+//        case "MX": .blue
+//        case "NS": .gray
+//        case "SRV": .gray
+//        case "CAA": .red
+//        default: .gray
+//        }
+//    }
 }
+

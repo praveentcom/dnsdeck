@@ -96,6 +96,27 @@ enum ProviderRecordData: Hashable {
         case .route53: nil // Route 53 doesn't store priority separately
         }
     }
+    
+    var createdOn: Date? {
+        switch self {
+        case let .cloudflare(record): record.created_on
+        case .route53: nil // Route 53 doesn't provide creation timestamps
+        }
+    }
+    
+    var modifiedOn: Date? {
+        switch self {
+        case let .cloudflare(record): record.modified_on
+        case .route53: nil // Route 53 doesn't provide modification timestamps
+        }
+    }
+    
+    var comment: String? {
+        switch self {
+        case let .cloudflare(record): record.comment
+        case .route53: nil // Route 53 doesn't support comments
+        }
+    }
 }
 
 struct ProviderRecord: Identifiable, Hashable {
@@ -109,6 +130,9 @@ struct ProviderRecord: Identifiable, Hashable {
     var ttl: Int? { recordData.ttl }
     var proxied: Bool? { recordData.proxied }
     var priority: Int? { recordData.priority }
+    var createdOn: Date? { recordData.createdOn }
+    var modifiedOn: Date? { recordData.modifiedOn }
+    var comment: String? { recordData.comment }
 
     // Convenience initializers
     init(provider: DNSProvider, record: CFDNSRecord) {
@@ -130,6 +154,7 @@ struct CreateProviderRecordRequest {
     let ttl: Int?
     let proxied: Bool? // Only for Cloudflare
     let priority: Int? // For MX records
+    let comment: String? // Only for Cloudflare
 
     func toCloudflareRequest() -> CreateDNSRecordRequest {
         CreateDNSRecordRequest(
@@ -139,7 +164,8 @@ struct CreateProviderRecordRequest {
             ttl: ttl,
             proxied: proxied,
             priority: priority,
-            data: nil
+            data: nil,
+            comment: comment
         )
     }
 

@@ -205,6 +205,80 @@ final class AppModel: ObservableObject {
             await refreshRecords(for: zone)
         } catch { errorHandler.handle(error) }
     }
+    
+    struct BatchImportResult {
+        let totalRecords: Int
+        let successfulRecords: Int
+        let failedRecords: Int
+        let errors: [BatchImportError]
+        
+        var isCompleteSuccess: Bool {
+            return failedRecords == 0
+        }
+    }
+    
+    struct BatchImportError {
+        let recordIndex: Int
+        let recordName: String
+        let error: Error
+    }
+    
+    func createRecordsBatch(
+        in zone: ProviderZone, 
+        records: [CreateProviderRecordRequest],
+        progressCallback: @escaping (Double) -> Void
+    ) async -> BatchImportResult {
+        var successCount = 0
+        var failedCount = 0
+        var errors: [BatchImportError] = []
+        
+        for (index, record) in records.enumerated() {
+            do {
+                switch zone.provider {
+                case .cloudflare:
+                    if case let .cloudflare(cfZone) = zone.zoneData {
+                        _ = try await cloudflareAPI.createRecord(zoneId: cfZone.id, payload: record.toCloudflareRequest())
+                    }
+                case .route53:
+                    if case let .route53(r53Zone) = zone.zoneData {
+                        let zoneName = r53Zone.name.hasSuffix(".") ? String(r53Zone.name.dropLast()) : r53Zone.name
+                        _ = try await route53API.createRecord(
+                            hostedZoneId: r53Zone.id,
+                            request: record.toRoute53Request(zoneName: zoneName)
+                        )
+                    }
+                }
+                successCount += 1
+            } catch {
+                failedCount += 1
+                errors.append(BatchImportError(
+                    recordIndex: index,
+                    recordName: record.name,
+                    error: error
+                ))
+                Logger.logError(error, context: "Batch import record \(record.name)")
+            }
+            
+            // Update progress
+            let progress = Double(index + 1) / Double(records.count)
+            await MainActor.run {
+                progressCallback(progress)
+            }
+            
+            // Small delay to prevent overwhelming the API
+            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        }
+        
+        // Refresh records after batch import
+        await refreshRecords(for: zone)
+        
+        return BatchImportResult(
+            totalRecords: records.count,
+            successfulRecords: successCount,
+            failedRecords: failedCount,
+            errors: errors
+        )
+    }
 
     func deleteRecords(in zone: ProviderZone, recordIds: [String]) async {
         for recordId in recordIds {
