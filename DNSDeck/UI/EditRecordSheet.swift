@@ -32,6 +32,14 @@ struct EditRecordSheet: View {
     @State private var caaFlags: Int
     @State private var caaTag: String
     @State private var caaValue: String
+    
+    private var timestampBackgroundColor: Color {
+        #if os(macOS)
+        Color(NSColor.controlBackgroundColor).opacity(0.5)
+        #else
+        Color(.systemGray6).opacity(0.5)
+        #endif
+    }
 
     init(zone: ProviderZone, record: ProviderRecord, isSubmitting: Binding<Bool>) {
         self.zone = zone
@@ -303,7 +311,7 @@ struct EditRecordSheet: View {
             }
         }
         .padding()
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .background(timestampBackgroundColor)
         .cornerRadius(8)
     }
 

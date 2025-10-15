@@ -21,6 +21,22 @@ struct CSVImportSheet: View {
     @State private var showingProgressDetails = false
     @State private var bulkComment = ""
     
+    private var controlBackgroundColor: Color {
+        #if os(macOS)
+        Color(NSColor.controlBackgroundColor)
+        #else
+        Color(.systemGray6)
+        #endif
+    }
+    
+    private var alternatingRowColor: Color {
+        #if os(macOS)
+        Color(NSColor.controlBackgroundColor).opacity(0.3)
+        #else
+        Color(.systemGray6).opacity(0.3)
+        #endif
+    }
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
@@ -174,7 +190,7 @@ struct CSVImportSheet: View {
             }
         }
         .frame(maxHeight: 100)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(controlBackgroundColor)
         .cornerRadius(6)
     }
     
@@ -202,7 +218,7 @@ struct CSVImportSheet: View {
                     .font(.caption)
                     .fontWeight(.semibold)
                     .padding(.vertical, 4)
-                    .background(Color(NSColor.controlBackgroundColor))
+                    .background(controlBackgroundColor)
                     
                     ForEach(Array(records.prefix(10).enumerated()), id: \.offset) { index, record in
                         HStack {
@@ -231,7 +247,7 @@ struct CSVImportSheet: View {
                                 .font(.system(.caption, design: .monospaced))
                         }
                         .padding(.vertical, 2)
-                        .background(index % 2 == 0 ? Color.clear : Color(NSColor.controlBackgroundColor).opacity(0.3))
+                        .background(index % 2 == 0 ? Color.clear : alternatingRowColor)
                     }
                     
                     if records.count > 10 {
@@ -243,7 +259,7 @@ struct CSVImportSheet: View {
                 }
             }
             .frame(maxHeight: 200)
-            .background(Color(NSColor.controlBackgroundColor))
+            .background(controlBackgroundColor)
             .cornerRadius(6)
         }
     }
