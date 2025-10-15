@@ -150,7 +150,13 @@ final class AppModel: ObservableObject {
             case .cloudflare:
                 if case let .cloudflare(cfZone) = zone.zoneData {
                     let cfRecords = try await cloudflareAPI.listRecords(zoneId: cfZone.id)
-                    records = cfRecords.map { ProviderRecord(provider: .cloudflare, record: $0) }
+                    let providerRecords = cfRecords.map { ProviderRecord(provider: .cloudflare, record: $0) }
+                    // Sort Cloudflare records by last modified first, then by created date
+                    records = providerRecords.sorted { record1, record2 in
+                        let date1 = record1.modifiedOn ?? record1.createdOn ?? Date.distantPast
+                        let date2 = record2.modifiedOn ?? record2.createdOn ?? Date.distantPast
+                        return date1 > date2 // Most recent first
+                    }
                 }
             case .route53:
                 if case let .route53(r53Zone) = zone.zoneData {

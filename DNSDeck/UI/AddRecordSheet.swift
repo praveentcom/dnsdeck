@@ -84,11 +84,15 @@ struct AddRecordSheet: View {
                     
                     // Comment field (Cloudflare only)
                     if zone.provider == .cloudflare {
+                        #if os(iOS)
+                        NativeTextField(placeholder: "Add a comment for this record (optional)", text: $comment)
+                        #else
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Comment (Optional)")
                                 .font(.headline)
                             NativeTextField(placeholder: "Add a comment for this record", text: $comment)
                         }
+                        #endif
                     }
                 }
                 .padding(20)
@@ -169,11 +173,15 @@ struct AddRecordSheet: View {
                     
                     // Comment field (Cloudflare only)
                     if zone.provider == .cloudflare {
+                        #if os(iOS)
+                        NativeTextField(placeholder: "Add a comment for this record (optional)", text: $comment)
+                        #else
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Comment (Optional)")
                                 .font(.headline)
                             NativeTextField(placeholder: "Add a comment for this record", text: $comment)
                         }
+                        #endif
                     }
                 }
                 .padding(20)

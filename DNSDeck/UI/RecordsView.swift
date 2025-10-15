@@ -12,6 +12,8 @@ struct RecordsView: View {
     @State private var showDeleteConfirmation = false
     @State private var pendingDeleteIDs: [String] = []
     @State private var selectedRecord: ProviderRecord?
+    @State private var showRecordDetail = false
+    @State private var selectedRecordType: String? = nil
     
     // Multi-selection state for macOS
     #if os(macOS)
@@ -21,7 +23,19 @@ struct RecordsView: View {
     #endif
 
     var filteredRecords: [ProviderRecord] {
-        SearchFilter.filterRecords(model.records, searchText: debouncedSearch.debouncedSearchText)
+        var filtered = SearchFilter.filterRecords(model.records, searchText: debouncedSearch.debouncedSearchText)
+        
+        // Apply type filter if selected
+        if let selectedType = selectedRecordType {
+            filtered = filtered.filter { $0.type == selectedType }
+        }
+        
+        return filtered
+    }
+    
+    private var uniqueRecordTypes: [String] {
+        let types = Set(model.records.map { $0.type })
+        return Array(types).sorted()
     }
 
     private var noRecordsView: some View {
@@ -144,6 +158,10 @@ struct RecordsView: View {
     private var recordsList: some View {
         List(filteredRecords) { record in
             RecordRowView(record: record)
+                .onTapGesture {
+                    selectedRecord = record
+                    showRecordDetail = true
+                }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Delete", role: .none) {
                         pendingDeleteIDs = [record.id]
@@ -158,6 +176,14 @@ struct RecordsView: View {
                     .disabled(isSubmitting)
                 }
                 .contextMenu {
+                    Button("View Details") {
+                        selectedRecord = record
+                        showRecordDetail = true
+                    }
+                    .disabled(isSubmitting)
+
+                    Divider()
+
                     Button("Edit") {
                         selectedRecord = record
                     }
@@ -189,6 +215,31 @@ struct RecordsView: View {
         .navigationTitle(zone.name)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
+                #if os(iOS)
+                // Type filter menu for mobile
+                Menu {
+                    Button("All Types") {
+                        selectedRecordType = nil
+                    }
+                    
+                    Divider()
+                    
+                    ForEach(uniqueRecordTypes, id: \.self) { recordType in
+                        Button(recordType) {
+                            selectedRecordType = recordType
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        if let selectedType = selectedRecordType {
+                            Text(selectedType)
+                                .font(.caption)
+                        }
+                    }
+                }
+                .disabled(isSubmitting)
+                #endif
                 #if os(macOS)
                 if !selectedRecordIDs.isEmpty {
                     Button {
@@ -250,6 +301,19 @@ struct RecordsView: View {
                 .frame(width: 520)
             #endif
         }
+        #if os(iOS)
+        .sheet(isPresented: $showRecordDetail) {
+            if let record = selectedRecord {
+                RecordDetailView(zone: zone, record: record, isSubmitting: $isSubmitting)
+                    .environmentObject(model)
+            }
+        }
+        .onChange(of: showRecordDetail) { isPresented in
+            if !isPresented {
+                selectedRecord = nil
+            }
+        }
+        #endif
         #if os(macOS)
         .sheet(isPresented: $showCSVImport) {
             CSVImportSheet(zone: zone, isSubmitting: $isSubmitting)
